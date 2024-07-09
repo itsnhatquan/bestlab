@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:bestlab/components/my_button.dart';
 import 'package:bestlab/components/my_textfield.dart';
 import 'package:bestlab/components/square_tile.dart';
+import 'package:bestlab/components/my_textfield_stateful.dart';
 
 class LoginPage extends StatelessWidget {
   LoginPage({super.key});
@@ -12,7 +13,9 @@ class LoginPage extends StatelessWidget {
   final passwordController = TextEditingController();
 
   // sign user in method
-  void signUserIn() {}
+  void signUserIn() {
+    
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,19 +37,22 @@ class LoginPage extends StatelessWidget {
 
 
               // username textfield
-              MyTextField(
+              MyTextfieldStateful(
                 controller: usernameController,
                 hintText: 'Username',
+                labelText: 'Username',
                 obscureText: false,
+                showEyeIcon: false,
               ),
 
               const SizedBox(height: 10),
 
               // password textfield
-              MyTextField(
+              MyTextfieldStateful(
                 controller: passwordController,
                 hintText: 'Password',
-                obscureText: true,
+                labelText: 'Password',
+                showEyeIcon: true,
               ),
 
               const SizedBox(height: 10),
@@ -69,6 +75,7 @@ class LoginPage extends StatelessWidget {
 
               // sign in button
               MyButton(
+                text: 'Sign In',
                 onTap: signUserIn,
               ),
 

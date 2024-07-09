@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:bestlab/pages/user_setting_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'pages/login_page.dart';
@@ -16,7 +17,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: UserList(),
+      home: UserSetting(),
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
