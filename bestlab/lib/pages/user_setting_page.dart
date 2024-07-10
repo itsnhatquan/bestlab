@@ -59,7 +59,7 @@ class UserSetting extends StatelessWidget {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: Text('Users',
+        title: Text('Users setting',
             style: TextStyle(
               fontSize: 35.0,
               fontWeight: FontWeight.bold,

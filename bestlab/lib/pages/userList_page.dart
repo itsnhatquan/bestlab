@@ -164,7 +164,7 @@ class UserRow extends StatelessWidget {
                   ),
                   Expanded(
                     child: Icon(
-                      Icons.delete,
+                      Icons.delete_outline_outlined,
                       size: 25,
                       color: Color.fromRGBO(75, 117, 198, 1),
                     ),
