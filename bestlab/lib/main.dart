@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:bestlab/pages/system_list_page.dart';
 import 'package:bestlab/pages/user_setting_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
@@ -17,7 +18,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: UserSetting(),
+      home: SystemList(),
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
