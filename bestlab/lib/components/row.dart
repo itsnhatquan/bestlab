@@ -1,105 +1,12 @@
 import 'package:flutter/material.dart';
 
-class UserList extends StatefulWidget {
-  UserList({super.key});
-
-  @override
-  _UserListState createState() => _UserListState();
-}
-
-class _UserListState extends State<UserList> {
-  final List<String> users = [
-    'Tran Khanh Duc',
-    'Nguyen Duc Dai',
-    'Trinh Viet Quy',
-    'Tong Nhat Quan',
-    'User Test 1',
-    'User Test 2',
-    'User Test 3',
-    'User Test 4',
-    'User Test 5',
-    'User Test 6',
-    'User Test 7',
-    'User Test 8',
-  ];
-
-  final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
-
-  void _removeItem(int index) {
-    final removedItem = users[index];
-    setState(() {
-      users.removeAt(index);
-    });
-    _listKey.currentState!.removeItem(
-      index,
-      (context, animation) => _buildItem(removedItem, animation),
-      duration: const Duration(milliseconds: 300),
-    );
-  }
-
-  Widget _buildItem(String item, Animation<double> animation) {
-    return SizeTransition(
-      sizeFactor: animation,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2.0),
-        child: UserRow(
-          icon: Icons.person,
-          text: item,
-          onTap: () {},
-          onDismissed: () {},
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          title: Text('Users',
-              style: TextStyle(
-                fontSize: 35.0,
-                fontWeight: FontWeight.bold,
-              )),
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back),
-            color: Color.fromRGBO(0, 0, 0, 1),
-            iconSize: 40.0,
-            padding: EdgeInsets.fromLTRB(70, 0, 0, 0),
-            onPressed: () {
-              // Add your onPressed code here!
-            },
-          ),
-          centerTitle: true,
-        ),
-        body: AnimatedList(
-          key: _listKey,
-          initialItemCount: users.length,
-          itemBuilder: (context, index, animation) {
-            return SizeTransition(
-              sizeFactor: animation,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2.0),
-                child: UserRow(
-                  icon: Icons.person,
-                  text: users[index],
-                  onTap: () {},
-                  onDismissed: () => _removeItem(index),
-                ),
-              ),
-            );
-          },
-        ));
-  }
-}
-
-class UserRow extends StatelessWidget {
+class row extends StatelessWidget {
   final IconData icon;
   final String text;
   final Function onTap;
   final Function onDismissed;
 
-  UserRow(
+  row(
       {required this.icon,
       required this.text,
       required this.onTap,

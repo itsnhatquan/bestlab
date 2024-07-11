@@ -1,37 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:bestlab/components/row.dart';
 
-class SystemList extends StatefulWidget {
-  final List<String> systems;
+class UserList extends StatefulWidget {
+  final List<String> users;
 
-  SystemList({required this.systems});
+  UserList({required this.users});
 
   @override
   _SystemListState createState() => _SystemListState();
 }
 
-class _SystemListState extends State<SystemList> {
-  late List<String> systems;
+class _SystemListState extends State<UserList> {
+  late List<String> users;
 
   @override
   void initState() {
     super.initState();
-    systems = widget.systems;
+    users = widget.users;
   }
 
   void _removeItem(int index) {
     setState(() {
-      systems.removeAt(index);
+      users.removeAt(index);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Systems',
+          'Users',
           style: TextStyle(
             fontSize: 24.0,
             fontWeight: FontWeight.bold,
@@ -54,10 +53,10 @@ class _SystemListState extends State<SystemList> {
         ],
       ),
       body: ListView.builder(
-        itemCount: systems.length,
+        itemCount: users.length,
         itemBuilder: (context, index) {
           return Dismissible(
-            key: Key(systems[index]),
+            key: Key(users[index]),
             background: Container(color: Colors.green),
             secondaryBackground: Container(
               color: Colors.red,
@@ -74,12 +73,12 @@ class _SystemListState extends State<SystemList> {
             onDismissed: (direction) {
               _removeItem(index);
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("${systems[index]} dismissed")),
+                SnackBar(content: Text("${users[index]} dismissed")),
               );
             },
             child: row(
-              icon: Icons.build_circle_outlined,
-              text: systems[index],
+              icon: Icons.person,
+              text: users[index],
               onTap: () {},
               onDismissed: () => _removeItem(index),
             ),

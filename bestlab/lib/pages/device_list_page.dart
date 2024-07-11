@@ -1,37 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:bestlab/components/row.dart';
 
-class SystemList extends StatefulWidget {
-  final List<String> systems;
 
-  SystemList({required this.systems});
+class DeviceList extends StatefulWidget {
+  final String systemName;
+  final List<String> devices;
+
+  DeviceList({super.key, required this.systemName, required this.devices});
 
   @override
   _SystemListState createState() => _SystemListState();
 }
 
-class _SystemListState extends State<SystemList> {
-  late List<String> systems;
+class _SystemListState extends State<DeviceList> {
+  late List<String> devices;
 
   @override
   void initState() {
     super.initState();
-    systems = widget.systems;
+    devices = widget.devices;
   }
 
   void _removeItem(int index) {
     setState(() {
-      systems.removeAt(index);
+      devices.removeAt(index);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Systems',
+          widget.systemName,
           style: TextStyle(
             fontSize: 24.0,
             fontWeight: FontWeight.bold,
@@ -54,10 +55,10 @@ class _SystemListState extends State<SystemList> {
         ],
       ),
       body: ListView.builder(
-        itemCount: systems.length,
+        itemCount: devices.length,
         itemBuilder: (context, index) {
           return Dismissible(
-            key: Key(systems[index]),
+            key: Key(devices[index]),
             background: Container(color: Colors.green),
             secondaryBackground: Container(
               color: Colors.red,
@@ -74,12 +75,12 @@ class _SystemListState extends State<SystemList> {
             onDismissed: (direction) {
               _removeItem(index);
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("${systems[index]} dismissed")),
+                SnackBar(content: Text("${devices[index]} dismissed")),
               );
             },
             child: row(
-              icon: Icons.build_circle_outlined,
-              text: systems[index],
+              icon: Icons.person,
+              text: devices[index],
               onTap: () {},
               onDismissed: () => _removeItem(index),
             ),
@@ -101,3 +102,5 @@ class _SystemListState extends State<SystemList> {
     );
   }
 }
+
+
