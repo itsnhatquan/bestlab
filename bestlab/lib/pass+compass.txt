@@ -1,0 +1,1 @@
+mongodb+srv://gunplabuilder1608:to06EFGyWbwK84kf@bestlab.gpydqxd.mongodb.net/

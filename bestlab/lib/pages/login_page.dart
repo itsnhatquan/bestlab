@@ -5,6 +5,22 @@ import 'package:bestlab/components/my_textfield.dart';
 import 'package:bestlab/components/square_tile.dart';
 import 'package:bestlab/components/my_textfield_stateful.dart';
 
+
+void main() {
+  runApp(LoginPage());
+}
+class AuthService {
+  Future<bool> signIn(String username, String password) async {
+    return username == 'user' && password == 'pass';
+  }
+
+  Future<bool> signUp(String username, String password) async {
+    return true;
+  }
+
+  void signOut() {
+  }
+}
 class LoginPage extends StatelessWidget {
   LoginPage({super.key});
 
@@ -13,8 +29,13 @@ class LoginPage extends StatelessWidget {
   final passwordController = TextEditingController();
 
   // sign user in method
-  void signUserIn() {
-    
+  void signUserIn() async {
+    bool success = await AuthService().signIn(usernameController.text, passwordController.text);
+    if (success) {
+      // Navigate to the home page or dashboard
+    } else {
+      // Show error message
+    }
   }
 
   @override
