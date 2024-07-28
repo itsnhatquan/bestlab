@@ -1,40 +1,116 @@
-
 import 'package:flutter/material.dart';
 import 'package:bestlab/components/my_button.dart';
 import 'package:bestlab/components/my_textfield.dart';
 import 'package:bestlab/components/square_tile.dart';
 import 'package:bestlab/components/my_textfield_stateful.dart';
-
+import 'package:mongo_dart/mongo_dart.dart' as mongo;
+import 'home_page.dart';
+import 'sign_up_page.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() {
-  runApp(LoginPage());
+  runApp(MyApp());
 }
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'BestLab',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: LoginPage(),
+    );
+  }
+}
+
 class AuthService {
+  final String mongoUrl = 'mongodb+srv://nguyenducdai:0Obkv5QtElG92eNp@bestlab-prod-1.foxbvln.mongodb.net/Authentication?retryWrites=true&w=majority&appName=BESTLAB-PROD-1';
+  final String dbName = 'Authentication';
+  final String collectionName = 'userAuth';
+
   Future<bool> signIn(String username, String password) async {
-    return username == 'user' && password == 'pass';
+    try {
+      var db = await mongo.Db.create(mongoUrl);
+      await db.open();
+      print('Connected to the database');
+
+      var collection = db.collection(collectionName);
+      var user = await collection.findOne({'username': username});
+      print('signIn: User found: $user');
+
+      if (user != null && user['password'] == password) {
+        await db.close();
+        return true;
+      } else {
+        await db.close();
+        return false;
+      }
+    } catch (e) {
+      print('Error: $e');
+      return false;
+    }
   }
 
   Future<bool> signUp(String username, String password) async {
-    return true;
-  }
+    try {
+      var db = await mongo.Db.create(mongoUrl);
+      await db.open();
+      print('Connected to the database');
 
-  void signOut() {
+      var collection = db.collection(collectionName);
+      var user = await collection.findOne({'username': username});
+      if (user != null) {
+        print('signUp: User already exists: $user');
+        await db.close();
+        return false; // User already exists
+      }
+
+      await collection.insert({'username': username, 'password': password});
+      print('signUp: New user created: {username: $username, password: $password}');
+      await db.close();
+      return true;
+    } catch (e) {
+      print('Error: $e');
+      return false;
+    }
   }
 }
-class LoginPage extends StatelessWidget {
+
+class LoginPage extends StatefulWidget {
   LoginPage({super.key});
 
-  // text editing controllers
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
   final usernameController = TextEditingController();
   final passwordController = TextEditingController();
+  double _buttonOpacity = 1.0;
 
-  // sign user in method
-  void signUserIn() async {
+  void signUserIn(BuildContext context) async {
+    setState(() {
+      _buttonOpacity = 0.5;
+    });
+
     bool success = await AuthService().signIn(usernameController.text, passwordController.text);
+
+    setState(() {
+      _buttonOpacity = 1.0;
+    });
+
     if (success) {
-      // Navigate to the home page or dashboard
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomePage()),
+      );
     } else {
-      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login Failed')),
+      );
     }
   }
 
@@ -49,15 +125,8 @@ class LoginPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const SizedBox(height: 50),
-
-              // logo
-             Image.asset('lib/images/logo.png',height:293),
-
-
-              // welcome back, you've been missed!
-
-
-              // username textfield
+              Image.asset('lib/images/logo.png', height: 293),
+              const SizedBox(height: 50),
               MyTextfieldStateful(
                 controller: usernameController,
                 hintText: 'Username',
@@ -65,20 +134,14 @@ class LoginPage extends StatelessWidget {
                 obscureText: false,
                 showEyeIcon: false,
               ),
-
               const SizedBox(height: 10),
-
-              // password textfield
               MyTextfieldStateful(
                 controller: passwordController,
                 hintText: 'Password',
                 labelText: 'Password',
                 showEyeIcon: true,
               ),
-
               const SizedBox(height: 10),
-
-              // forgot password?
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 25.0),
                 child: Row(
@@ -91,28 +154,25 @@ class LoginPage extends StatelessWidget {
                   ],
                 ),
               ),
-
               const SizedBox(height: 25),
-
-              // sign in button
-              MyButton(
-                text: 'Sign In',
-                onTap: signUserIn,
+              AnimatedOpacity(
+                opacity: _buttonOpacity,
+                duration: Duration(milliseconds: 300),
+                child: MyButton(
+                  text: 'Sign In',
+                  onTap: () => signUserIn(context),
+                ),
               ),
-
               const SizedBox(height: 50),
-
-              // or continue with
-
-              const SizedBox(height: 50),
-
-              // google + apple sign in buttons
-
-
-              const SizedBox(height: 50),
-
-              // not a member? register now
-
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SignUpPage()),
+                  );
+                },
+                child: Text('Not a member? Register now'),
+              ),
             ],
           ),
         ),
