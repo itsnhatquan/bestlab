@@ -55,34 +55,37 @@ class _SystemListState extends State<UserList> {
       body: ListView.builder(
         itemCount: users.length,
         itemBuilder: (context, index) {
-          return Dismissible(
-            key: Key(users[index]),
-            background: Container(color: Colors.green),
-            secondaryBackground: Container(
-              color: Colors.red,
-              alignment: Alignment.centerRight,
-              padding: EdgeInsets.symmetric(horizontal: 20.0),
-              child: Icon(
-                Icons.delete,
-                color: Colors.white,
-              ),
+          return Padding(
+              padding: const EdgeInsets.only(bottom: 10.0), // Add bottom padding
+              child: Dismissible(
+                key: Key(users[index]),
+                background: Container(color: Colors.green),
+                secondaryBackground: Container(
+                  color: Colors.red,
+                  alignment: Alignment.centerRight,
+                  padding: EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Icon(
+                    Icons.delete,
+                    color: Colors.white,
+                  ),
+                ),
+                confirmDismiss: (direction) {
+                  return Future.value(direction == DismissDirection.endToStart);
+                },
+                onDismissed: (direction) {
+                  _removeItem(index);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("${users[index]} dismissed")),
+                  );
+                },
+                child: row(
+                  icon: Icons.person,
+                  text: users[index],
+                  onTap: () {},
+                  onDismissed: () => _removeItem(index),
+                ),
             ),
-            confirmDismiss: (direction) {
-              return Future.value(direction == DismissDirection.endToStart);
-            },
-            onDismissed: (direction) {
-              _removeItem(index);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("${users[index]} dismissed")),
-              );
-            },
-            child: row(
-              icon: Icons.person,
-              text: users[index],
-              onTap: () {},
-              onDismissed: () => _removeItem(index),
-            ),
-          );
+          ); 
         },
       ),
       floatingActionButton: FloatingActionButton(
