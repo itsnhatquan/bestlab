@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bestlab/components/row.dart';
+import 'package:bestlab/components/my_search_bar.dart'; // Import the search bar component
 
 class UserList extends StatefulWidget {
   final List<String> users;
@@ -7,21 +8,44 @@ class UserList extends StatefulWidget {
   UserList({required this.users});
 
   @override
-  _SystemListState createState() => _SystemListState();
+  _UserListState createState() => _UserListState();
 }
 
-class _SystemListState extends State<UserList> {
+class _UserListState extends State<UserList> {
   late List<String> users;
+  late List<String> filteredUsers;
+  late TextEditingController searchController;
 
   @override
   void initState() {
     super.initState();
     users = widget.users;
+    filteredUsers = users;
+    searchController = TextEditingController();
+
+    // Listen to changes in the search query
+    searchController.addListener(() {
+      _filterUsers(searchController.text);
+    });
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
   }
 
   void _removeItem(int index) {
     setState(() {
-      users.removeAt(index);
+      filteredUsers.removeAt(index);
+    });
+  }
+
+  void _filterUsers(String query) {
+    setState(() {
+      filteredUsers = users
+          .where((user) => user.toLowerCase().contains(query.toLowerCase()))
+          .toList();
     });
   }
 
@@ -52,49 +76,58 @@ class _SystemListState extends State<UserList> {
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: users.length,
-        itemBuilder: (context, index) {
-          return Padding(
-              padding: const EdgeInsets.only(bottom: 10.0), // Add bottom padding
-              child: Dismissible(
-                key: Key(users[index]),
-                background: Container(color: Colors.green),
-                secondaryBackground: Container(
-                  color: Colors.red,
-                  alignment: Alignment.centerRight,
-                  padding: EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Icon(
-                    Icons.delete,
-                    color: Colors.white,
+      body: Column(
+        children: [
+          const SizedBox(height: 15),
+          MySearchBar(
+            controller: searchController,
+            hintText: 'Search users...',
+            onChanged: _filterUsers, // Pass the filter function here
+          ),
+          const SizedBox(height: 15),
+          Expanded(
+            child: ListView.builder(
+              itemCount: filteredUsers.length,
+              itemBuilder: (context, index) {
+                return Dismissible(
+                  key: Key(filteredUsers[index]),
+                  background: Container(color: Colors.green),
+                  secondaryBackground: Container(
+                    color: Colors.red,
+                    alignment: Alignment.centerRight,
+                    padding: EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Icon(
+                      Icons.delete,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-                confirmDismiss: (direction) {
-                  return Future.value(direction == DismissDirection.endToStart);
-                },
-                onDismissed: (direction) {
-                  _removeItem(index);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("${users[index]} dismissed")),
-                  );
-                },
-                child: row(
-                  icon: Icons.person,
-                  text: users[index],
-                  onTap: () {},
-                  onDismissed: () => _removeItem(index),
-                ),
+                  confirmDismiss: (direction) {
+                    return Future.value(direction == DismissDirection.endToStart);
+                  },
+                  onDismissed: (direction) {
+                    _removeItem(index);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("${filteredUsers[index]} dismissed")),
+                    );
+                  },
+                  child: row(
+                    icon: Icons.person,
+                    text: filteredUsers[index],
+                    onTap: () {},
+                    onDismissed: () => _removeItem(index),
+                  ),
+                );
+              },
             ),
-          ); 
-        },
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         foregroundColor: Color.fromRGBO(75, 117, 198, 1),
         backgroundColor: Colors.white,
         shape: CircleBorder(
             eccentricity: 0,
-            side:
-                BorderSide(color: Color.fromRGBO(75, 117, 198, 1), width: 2.0)),
+            side: BorderSide(color: Color.fromRGBO(75, 117, 198, 1), width: 2.0)),
         onPressed: () {
           // Add your add device logic here
         },

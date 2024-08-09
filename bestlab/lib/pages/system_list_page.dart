@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bestlab/components/row.dart';
+import 'package:bestlab/components/my_search_bar.dart'; // Import the search bar component
 
 class SystemList extends StatefulWidget {
   final List<String> systems;
@@ -12,16 +13,39 @@ class SystemList extends StatefulWidget {
 
 class _SystemListState extends State<SystemList> {
   late List<String> systems;
+  late List<String> filteredSystems;
+  late TextEditingController searchController;
 
   @override
   void initState() {
     super.initState();
     systems = widget.systems;
+    filteredSystems = systems;
+    searchController = TextEditingController();
+
+    // Listen to changes in the search query
+    searchController.addListener(() {
+      _filterSystems(searchController.text);
+    });
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
   }
 
   void _removeItem(int index) {
     setState(() {
-      systems.removeAt(index);
+      filteredSystems.removeAt(index);
+    });
+  }
+
+  void _filterSystems(String query) {
+    setState(() {
+      filteredSystems = systems
+          .where((system) => system.toLowerCase().contains(query.toLowerCase()))
+          .toList();
     });
   }
 
@@ -53,49 +77,62 @@ class _SystemListState extends State<SystemList> {
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: systems.length,
-        itemBuilder: (context, index) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 10.0), // Add bottom padding
-            child: Dismissible(
-              key: Key(systems[index]),
-              background: Container(color: Colors.green),
-              secondaryBackground: Container(
-                color: Colors.red,
-                alignment: Alignment.centerRight,
-                padding: EdgeInsets.symmetric(horizontal: 20.0),
-                child: Icon(
-                  Icons.delete,
-                  color: Colors.white,
-                ),
-              ),
-              confirmDismiss: (direction) {
-                return Future.value(direction == DismissDirection.endToStart);
-              },
-              onDismissed: (direction) {
-                _removeItem(index);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("${systems[index]} dismissed")),
+      body: Column(
+        children: [
+          const SizedBox(height: 15),
+          MySearchBar(
+            controller: searchController,
+            hintText: 'Search systems...',
+            onChanged: _filterSystems,
+          ),
+          const SizedBox(height: 15),
+          Expanded(
+            child: ListView.builder(
+              itemCount: filteredSystems.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10.0), // Add bottom padding
+                  child: Dismissible(
+                    key: Key(filteredSystems[index]),
+                    background: Container(color: Colors.green),
+                    secondaryBackground: Container(
+                      color: Colors.red,
+                      alignment: Alignment.centerRight,
+                      padding: EdgeInsets.symmetric(horizontal: 20.0),
+                      child: Icon(
+                        Icons.delete,
+                        color: Colors.white,
+                      ),
+                    ),
+                    confirmDismiss: (direction) {
+                      return Future.value(direction == DismissDirection.endToStart);
+                    },
+                    onDismissed: (direction) {
+                      _removeItem(index);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("${filteredSystems[index]} dismissed")),
+                      );
+                    },
+                    child: row(
+                      icon: Icons.build_circle_outlined,
+                      text: filteredSystems[index],
+                      onTap: () {},
+                      onDismissed: () => _removeItem(index),
+                    ),
+                  ),
                 );
               },
-              child: row(
-                icon: Icons.build_circle_outlined,
-                text: systems[index],
-                onTap: () {},
-                onDismissed: () => _removeItem(index),
-              ),
             ),
-          );
-        },
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         foregroundColor: Color.fromRGBO(75, 117, 198, 1),
         backgroundColor: Colors.white,
         shape: CircleBorder(
-            eccentricity: 0,
-            side:
-                BorderSide(color: Color.fromRGBO(75, 117, 198, 1), width: 2.0)),
+          eccentricity: 0,
+          side: BorderSide(color: Color.fromRGBO(75, 117, 198, 1), width: 2.0),
+        ),
         onPressed: () {
           // Add your add device logic here
         },

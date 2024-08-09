@@ -1,23 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:bestlab/components/my_textfield_stateful.dart';
 import 'package:bestlab/components/my_button.dart';
-import 'package:bestlab/components/my_textfield.dart';
+import 'package:bestlab/components/my_dropdown.dart';  // Import the new general dropdown component
 
-class UserSetting extends StatelessWidget {
+class UserSetting extends StatefulWidget {
   UserSetting({super.key});
 
-  // text editing controllers
+  @override
+  _UserSettingState createState() => _UserSettingState();
+}
+
+class _UserSettingState extends State<UserSetting> {
+  // Text editing controllers
   final usernameController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
 
-  // sign user in method
+  // Role selection
+  String? selectedRole; // Initially null to show the hint
+
+  // Sign user in method
   void createUser(BuildContext context) {
     if (validatePassword()) {
       // Password is valid, proceed with user creation
       // Add your user creation logic here
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('User created successfully!')),
+        SnackBar(content: Text('User created successfully! Role: $selectedRole')),
       );
     }
   }
@@ -50,8 +58,7 @@ class UserSetting extends StatelessWidget {
   }
 
   void showError(String message) {
-    print(
-        message); // Replace this with your preferred way of showing error messages, e.g., a Snackbar or a dialog
+    print(message); // Replace this with your preferred way of showing error messages, e.g., a Snackbar or a dialog
   }
 
   @override
@@ -59,16 +66,17 @@ class UserSetting extends StatelessWidget {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: Text('Users setting',
-            style: TextStyle(
-              fontSize: 35.0,
-              fontWeight: FontWeight.bold,
-            )),
+        title: Text(
+          'Users setting',
+          style: TextStyle(
+            fontSize: 35.0,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           color: Color.fromRGBO(0, 0, 0, 1),
           iconSize: 40.0,
-          padding: EdgeInsets.fromLTRB(70, 0, 0, 0),
           onPressed: () {
             // Handle back button press
           },
@@ -80,7 +88,7 @@ class UserSetting extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // logo
+              // Logo
               Container(
                 child: Icon(
                   Icons.person,
@@ -90,7 +98,7 @@ class UserSetting extends StatelessWidget {
 
               const SizedBox(height: 15),
 
-              // username textfield
+              // Username textfield
               MyTextfieldStateful(
                 controller: usernameController,
                 hintText: 'Username',
@@ -101,7 +109,7 @@ class UserSetting extends StatelessWidget {
 
               const SizedBox(height: 15),
 
-              // password textfield
+              // Password textfield
               MyTextfieldStateful(
                 controller: passwordController,
                 hintText: 'Password',
@@ -111,7 +119,7 @@ class UserSetting extends StatelessWidget {
 
               const SizedBox(height: 15),
 
-              // password confirmation
+              // Password confirmation
               MyTextfieldStateful(
                 controller: confirmPasswordController,
                 hintText: 'Confirm Password',
@@ -119,9 +127,24 @@ class UserSetting extends StatelessWidget {
                 showEyeIcon: true,
               ),
 
+              const SizedBox(height: 15),
+
+              // Role selection dropdown using the new MyDropdown component
+              MyDropdown(
+                hintText: 'Select a role...',
+                labelText: 'Role',
+                selectedItem: selectedRole,
+                items: ['Admin', 'User'],
+                onChanged: (String? newValue) {
+                  setState(() {
+                    selectedRole = newValue;
+                  });
+                },
+              ),
+
               const SizedBox(height: 30),
 
-              // create user button
+              // Create user button
               MyButton(
                 text: 'Create new user',
                 onTap: () => createUser(context),
