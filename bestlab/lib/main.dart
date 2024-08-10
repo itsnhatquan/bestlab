@@ -19,15 +19,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: SystemList(
-        systems: [
-          'user 1',
-          'user 2',
-          'user 3',
-          'user 4',
-          'user 5',
-        ],
-      ),
+      home: LoginPage(),
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),

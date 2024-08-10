@@ -1,11 +1,13 @@
+import 'package:bestlab/pages/device_list_page.dart';
 import 'package:flutter/material.dart';
 import 'package:bestlab/components/row.dart';
 import 'package:bestlab/components/my_search_bar.dart'; // Import the search bar component
 
 class SystemList extends StatefulWidget {
   final List<String> systems;
+  final Map<String, dynamic> userData; // Add this line to store user data
 
-  SystemList({required this.systems});
+  SystemList({required this.systems, required this.userData}); // Update constructor
 
   @override
   _SystemListState createState() => _SystemListState();
@@ -116,7 +118,17 @@ class _SystemListState extends State<SystemList> {
                     child: row(
                       icon: Icons.build_circle_outlined,
                       text: filteredSystems[index],
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DeviceList(
+                              systemName: filteredSystems[index],
+                              devices: ['Device 1', 'Device 2'], // Example device list
+                            ),
+                          ),
+                        );
+                      },
                       onDismissed: () => _removeItem(index),
                     ),
                   ),

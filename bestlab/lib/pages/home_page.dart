@@ -294,13 +294,15 @@ import 'package:flutter/material.dart';
 import 'package:bestlab/pages/dashboard.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+  final Map<String, dynamic> userData; // Add this line to store user data
+
+  HomePage({required this.userData, super.key}); // Update constructor
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Dashboard(),
+      home: Dashboard(userData: userData), // Pass userData to the Dashboard
     );
   }
 }

@@ -247,7 +247,7 @@ class AuthService {
   final String collectionName = 'userAuth';
   final Uuid uuid = Uuid();
 
-  Future<bool> signIn(String username, String password) async {
+  Future<Map<String, dynamic>?> signIn(String username, String password) async {
     try {
       var db = await mongo.Db.create(mongoUrl);
       await db.open();
@@ -259,14 +259,14 @@ class AuthService {
 
       if (user != null && user['password'] == password) {
         await db.close();
-        return true;
+        return user; // Return the entire user document
       } else {
         await db.close();
-        return false;
+        return null;
       }
     } catch (e) {
       print('Error: $e');
-      return false;
+      return null;
     }
   }
 
@@ -303,6 +303,7 @@ class AuthService {
   }
 }
 
+
 class LoginPage extends StatefulWidget {
   LoginPage({super.key});
 
@@ -320,16 +321,14 @@ class _LoginPageState extends State<LoginPage> {
       _buttonOpacity = 0.5;
     });
 
-    var db = await mongo.Db.create(AuthService().mongoUrl);
-    await db.open();
-    var collection = db.collection(AuthService().collectionName);
-    var user = await collection.findOne({'username': usernameController.text});
+    AuthService authService = AuthService();
+    var user = await authService.signIn(usernameController.text, passwordController.text);
 
     setState(() {
       _buttonOpacity = 1.0;
     });
 
-    if (user != null && user['password'] == passwordController.text) {
+    if (user != null) {
       String role = user['systemRole'];
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -339,12 +338,15 @@ class _LoginPageState extends State<LoginPage> {
       if (role == 'admin') {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => AdminPage()), // Redirect to AdminPage
+          MaterialPageRoute(
+            builder: (context) => AdminPage(userData: user),
+          ), // Redirect to AdminPage
         );
       } else {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => HomePage()),
+          MaterialPageRoute(
+            builder: (context) => HomePage(userData: user)), // Pass user data to HomePage
         );
       }
     } else {
@@ -352,8 +354,6 @@ class _LoginPageState extends State<LoginPage> {
         SnackBar(content: Text('Login Failed')),
       );
     }
-
-    await db.close();
   }
 
   @override

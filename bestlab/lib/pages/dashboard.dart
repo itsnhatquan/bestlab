@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:bestlab/pages/login_page.dart';
+import 'package:bestlab/pages/system_list_page.dart'; // Import your SystemList page
+import 'package:bestlab/pages/user_list_page.dart'; // Import your UserList page
 
 class Dashboard extends StatelessWidget {
+  final Map<String, dynamic> userData; // Store user data
+
+  Dashboard({required this.userData}); // Constructor to accept user data
+
   var height, width;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -62,7 +68,7 @@ class Dashboard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'Hello user!',
+                          'Hello ${userData['username']}!', // Display user name from userData
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.white54,
@@ -96,39 +102,122 @@ class Dashboard extends StatelessWidget {
                       mainAxisSpacing: 25,
                     ),
                     itemBuilder: (context, index) {
-                      return InkWell(
-                        onTap: () {},
-                        child: Container(
-                          margin: EdgeInsets.symmetric(
-                              vertical: 8, horizontal: 20),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            color: Colors.white,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black26,
-                                spreadRadius: 1,
-                                blurRadius: 6,
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Icon(Icons.hourglass_bottom, size: 50,),
-                              Text(
-                                "Title",
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
+                      if (index == 0) {
+                        return InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SystemList(
+                                  systems: ['System 1', 'System 2'], // Replace with actual system data
+                                  userData: userData, // Pass the user data to the SystemList page
                                 ),
                               ),
-                            ],
+                            );
+                          },
+                          child: Container(
+                            margin: EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 20),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              color: Colors.white,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  spreadRadius: 1,
+                                  blurRadius: 6,
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                Icon(Icons.build_circle_outlined, size: 50,),
+                                Text(
+                                  "System",
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
+                        );
+                      } else if (index == 1 && userData['username'] == 'admin') {
+                        return InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => UserList(users: ['User 1', 'User 2']), // Replace with actual user list data
+                              ),
+                            );
+                          },
+                          child: Container(
+                            margin: EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 20),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              color: Colors.white,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  spreadRadius: 1,
+                                  blurRadius: 6,
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                Icon(Icons.person, size: 50,),
+                                Text(
+                                  "Users",
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      } else {
+                        return InkWell(
+                          onTap: () {},
+                          child: Container(
+                            margin: EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 20),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              color: Colors.white,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  spreadRadius: 1,
+                                  blurRadius: 6,
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                Icon(Icons.hourglass_bottom, size: 50,),
+                                Text(
+                                  "Title",
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
                     },
-                    itemCount: 6, // Add this line to specify the number of items
+                    itemCount: 6, // Adjust the item count based on your design
                   ),
                 ),
               ),
