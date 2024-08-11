@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:bestlab/pages/login_page.dart';
 import 'package:bestlab/pages/system_list_page.dart'; // Import your SystemList page
 import 'package:bestlab/pages/user_list_page.dart'; // Import your UserList page
+import 'login_page.dart'; // Import AuthService
 
 class Dashboard extends StatelessWidget {
   final Map<String, dynamic> userData; // Store user data
@@ -10,6 +11,7 @@ class Dashboard extends StatelessWidget {
 
   var height, width;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final AuthService authService = AuthService(); // Initialize AuthService
 
   @override
   Widget build(BuildContext context) {
@@ -144,13 +146,14 @@ class Dashboard extends StatelessWidget {
                             ),
                           ),
                         );
-                      } else if (index == 1 && userData['username'] == 'admin') {
+                      } else if (index == 1 && userData['systemRole'] == 'admin') {
                         return InkWell(
-                          onTap: () {
+                          onTap: () async {
+                            var users = await authService.getAllUsers(); // Fetch users from MongoDB
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => UserList(users: ['User 1', 'User 2']), // Replace with actual user list data
+                                builder: (context) => UserList(), // No need to pass users manually
                               ),
                             );
                           },
@@ -303,7 +306,7 @@ class Dashboard extends StatelessWidget {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => LoginPage()),
-        (route) => false,
+            (route) => false,
       );
     }
   }
