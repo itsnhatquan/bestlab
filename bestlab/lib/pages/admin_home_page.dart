@@ -1,49 +1,16 @@
-// admin_home_page.dart
 import 'package:flutter/material.dart';
-import 'login_page.dart';
+import 'package:bestlab/pages/dashboard.dart';
 
 class AdminPage extends StatelessWidget {
+  final Map<String, dynamic> userData; // Add this line to store user data
+
+  AdminPage({required this.userData, super.key}); // Update constructor
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Admin Page'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: () async {
-              bool? confirmLogout = await showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Text('Confirm Logout'),
-                  content: Text('Are you sure you want to log out?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      child: Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(true),
-                      child: Text('Logout'),
-                    ),
-                  ],
-                ),
-              );
-
-              if (confirmLogout == true) {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => LoginPage()),
-                      (route) => false,
-                );
-              }
-            },
-          ),
-        ],
-      ),
-      body: Center(
-        child: Text('Welcome Admin!'),
-      ),
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Dashboard(userData: userData), // Pass userData to the Dashboard
     );
   }
 }
