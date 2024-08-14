@@ -4,12 +4,18 @@ class MySearchBar extends StatelessWidget {
   final TextEditingController controller;
   final String hintText;
   final Function(String) onChanged;
+  final Color backgroundColor;
+  final Color textColor;
+  final Color hintColor;
 
   const MySearchBar({
     super.key,
     required this.controller,
     required this.hintText,
     required this.onChanged,
+    required this.backgroundColor,
+    required this.textColor,
+    required this.hintColor,
   });
 
   @override
@@ -18,7 +24,7 @@ class MySearchBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 15.0),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: backgroundColor,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
@@ -32,16 +38,17 @@ class MySearchBar extends StatelessWidget {
         child: TextField(
           controller: controller,
           onChanged: onChanged,
+          style: TextStyle(color: textColor),
           decoration: InputDecoration(
-            prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
+            prefixIcon: Icon(Icons.search, color: hintColor),
             hintText: hintText,
-            hintStyle: TextStyle(color: Colors.grey[600]),
+            hintStyle: TextStyle(color: hintColor),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none, // Remove the default border
             ),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: backgroundColor,
           ),
         ),
       ),

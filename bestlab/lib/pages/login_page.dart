@@ -34,6 +34,110 @@ class AuthService {
   final String dbName = 'Authentication';
   final String collectionName = 'userAuth';
   final Uuid uuid = Uuid();
+  final mongo.Db db = mongo.Db('mongodb://nguyenducdai:0Obkv5QtElG92eNp@ac-vwtniuz-shard-00-00.foxbvln.mongodb.net:27017,ac-vwtniuz-shard-00-01.foxbvln.mongodb.net:27017,ac-vwtniuz-shard-00-02.foxbvln.mongodb.net:27017/Authentication?replicaSet=atlas-4210ho-shard-0&ssl=true&authSource=admin');
+
+  Future<void> deleteSystem(String systemName) async {
+    try {
+      await db.open();
+      var collection = db.collection('systems');
+      await collection.remove({'name': systemName});
+      print('System $systemName deleted successfully.');
+    } catch (e) {
+      print('Error deleting system: $e');
+    } finally {
+      await db.close();
+    }
+  }
+
+  Future<void> deleteDevice(String deviceName) async {
+    try {
+      await db.open();
+      var collection = db.collection('devices');
+      await collection.remove({'name': deviceName});
+      print('Device $deviceName deleted successfully.');
+    } catch (e) {
+      print('Error deleting device: $e');
+    } finally {
+      await db.close();
+    }
+  }
+  
+  Future<bool> isDeviceAvailable(String deviceName) async {
+    await db.open();
+    var collection = db.collection('systems');
+    var system = await collection.findOne({'devices': deviceName});
+    await db.close();
+    return system == null;
+  }
+
+  Future<void> addDevice(String deviceName) async {
+    try {
+      await db.open();
+      var collection = db.collection('devices');
+
+      var existingDevice = await collection.findOne({'name': deviceName});
+      if (existingDevice == null) {
+        await collection.insertOne({
+          'name': deviceName,
+          'createdAt': DateTime.now().toIso8601String(),
+        });
+        print('Device $deviceName added to the collection.');
+      } else {
+        print('Device $deviceName already exists.');
+      }
+    } catch (e) {
+      print('Error adding device to MongoDB: $e');
+    } finally {
+      await db.close();
+    }
+  }
+
+  Future<List<String>> getSystems() async {
+    await db.open();
+    var collection = db.collection('systems');
+    var systems = await collection.find().toList();
+    await db.close();
+    return systems.map((system) => system['name'].toString()).toList();
+  }
+
+  Future<List<String>> getAllDevices() async {
+  List<String> allDevices = [];
+  try {
+    await db.open();
+    var collection = db.collection('devices');
+    var devices = await collection.find().toList();
+
+    for (var device in devices) {
+      if (device['name'] != null) {
+        allDevices.add(device['name'].toString());
+      }
+    }
+  } catch (e) {
+    print('Error fetching all devices: $e');
+  } finally {
+    await db.close();
+  }
+  return allDevices;
+}
+
+
+  Future<List<String>> getSystemDevices(String systemName) async {
+    try {
+      await db.open();
+      var collection = db.collection('systems');
+      var system = await collection.findOne({'name': systemName});
+      await db.close();
+
+      if (system != null && system.containsKey('devices')) {
+        return List<String>.from(system['devices']);
+      } else {
+        return []; // Return an empty list if no devices found or system doesn't exist
+      }
+    } catch (e) {
+      print('Error fetching devices: $e');
+      return [];
+    }
+  }
 
   Future<Map<String, dynamic>?> signIn(String username, String password) async {
     try {
@@ -122,6 +226,7 @@ class AuthService {
       print('Error: $e');
     }
   }
+
   Future<void> updateUserRole(String userId, String newRole) async {
     try {
       var db = await mongo.Db.create(mongoUrl);
@@ -137,10 +242,7 @@ class AuthService {
       throw Exception('Failed to update role');
     }
   }
-
 }
-
-
 
 class LoginPage extends StatefulWidget {
   LoginPage({super.key});
@@ -178,13 +280,13 @@ class _LoginPageState extends State<LoginPage> {
           context,
           MaterialPageRoute(
             builder: (context) => AdminPage(userData: user),
-          ), // Redirect to AdminPage
+          ),
         );
       } else {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => HomePage(userData: user)), // Pass user data to HomePage
+            builder: (context) => HomePage(userData: user)),
         );
       }
     } else {
@@ -196,66 +298,69 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      backgroundColor: Colors.grey[300],
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(height: 50),
-                Image.asset('lib/images/logo.png', height: 293),
-                const SizedBox(height: 50),
-                MyTextfieldStateful(
-                  controller: usernameController,
-                  hintText: 'Username',
-                  labelText: 'Username',
-                  obscureText: false,
-                  showEyeIcon: false,
-                ),
-                const SizedBox(height: 10),
-                MyTextfieldStateful(
-                  controller: passwordController,
-                  hintText: 'Password',
-                  labelText: 'Password',
-                  showEyeIcon: true,
-                ),
-                const SizedBox(height: 10),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Forgot Password?',
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
-                    ],
+    return Theme(
+      data: ThemeData.light(),  // Fixed light theme
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        backgroundColor: Colors.grey[300],
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 50),
+                  Image.asset('lib/images/logo.png', height: 293),
+                  const SizedBox(height: 50),
+                  MyTextfieldStateful(
+                    controller: usernameController,
+                    hintText: 'Username',
+                    labelText: 'Username',
+                    obscureText: false,
+                    showEyeIcon: false,
                   ),
-                ),
-                const SizedBox(height: 25),
-                AnimatedOpacity(
-                  opacity: _buttonOpacity,
-                  duration: Duration(milliseconds: 300),
-                  child: MyButton(
-                    text: 'Sign In',
-                    onTap: () => signUserIn(context),
+                  const SizedBox(height: 10),
+                  MyTextfieldStateful(
+                    controller: passwordController,
+                    hintText: 'Password',
+                    labelText: 'Password',
+                    showEyeIcon: true,
                   ),
-                ),
-                const SizedBox(height: 50),
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => SignUpPage()),
-                    );
-                  },
-                  child: Text('Not a member? Register now'),
-                ),
-                const SizedBox(height: 10),
-              ],
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Forgot Password?',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 25),
+                  AnimatedOpacity(
+                    opacity: _buttonOpacity,
+                    duration: Duration(milliseconds: 300),
+                    child: MyButton(
+                      text: 'Sign In',
+                      onTap: () => signUserIn(context),
+                    ),
+                  ),
+                  const SizedBox(height: 50),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SignUpPage()),
+                      );
+                    },
+                    child: Text('Not a member? Register now'),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ),
             ),
           ),
         ),

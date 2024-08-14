@@ -1,42 +1,61 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:bestlab/components/themeProvider.dart';
 
-class row extends StatelessWidget { // Renamed to follow Dart naming conventions
+class myRow extends StatelessWidget {
   final IconData icon;
   final String text;
+  final String? subText; // Optional subtitle text
   final Function onTap;
   final Function onDismissed;
+  final List<Widget>? actions; // Optional list of actions
 
-  row({
+  myRow({
     required this.icon,
     required this.text,
+    this.subText,
     required this.onTap,
     required this.onDismissed,
+    this.actions,
   });
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final bool isDarkMode = themeProvider.isDarkMode;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10.0), // Add bottom padding
+      padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 5.0), // Match padding with search bar
       child: GestureDetector(
         onTap: () => onTap(),
         child: Container(
-          constraints: BoxConstraints.expand(
-            height:
-                Theme.of(context).textTheme.headlineMedium!.fontSize! * 1.1 +
-                    50.0,
-          ),
           decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(
-                top: BorderSide(color: Color.fromRGBO(217, 217, 217, 1)),
-              )),
+            color: isDarkMode ? Colors.grey[800] : Colors.white,
+            borderRadius: BorderRadius.circular(12), // Match border radius with search bar
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                spreadRadius: 2,
+                blurRadius: 6,
+                offset: Offset(0, 3), // matches shadow with search bar
+              ),
+            ],
+          ),
           child: Dismissible(
             key: Key(text),
             background: Container(), // No background for swipe right
             secondaryBackground: Container(
-              color: Colors.red,
-              alignment: Alignment.center,
-            ), // Background for swipe left
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(12), // Ensure border radius matches
+              ),
+              alignment: Alignment.centerRight,
+              padding: EdgeInsets.symmetric(horizontal: 20.0),
+              child: Icon(
+                Icons.delete,
+                color: Colors.white,
+              ),
+            ),
             confirmDismiss: (direction) async {
               if (direction == DismissDirection.startToEnd) {
                 // Prevent dismissing on swipe right
@@ -50,37 +69,25 @@ class row extends StatelessWidget { // Renamed to follow Dart naming conventions
                 onDismissed();
               }
             },
-            child: Center(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  Expanded(
-                    child: Icon(
-                      icon,
-                      size: 30,
-                      color: Colors.black,
-                    ),
-                  ),
-                  Expanded(
-                    flex: 3, // Adjust flex to center the text
-                    child: Text(
-                      text,
-                      textAlign: TextAlign.start, // Align the text to the start
+            child: ListTile(
+              leading: Icon(icon, color: isDarkMode ? Colors.white : Colors.black),
+              title: Text(
+                text,
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
+              ),
+              subtitle: subText != null
+                  ? Text(
+                      subText!,
                       style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.white70 : Colors.black87,
                       ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Icon(
-                      Icons.delete_outline_outlined,
-                      size: 25,
-                      color: Color.fromRGBO(75, 117, 198, 1),
-                    ),
-                  ),
-                ],
+                    )
+                  : null,
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: actions ?? [],
               ),
             ),
           ),

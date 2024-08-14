@@ -1,27 +1,36 @@
-import 'package:flutter/material.dart';
 import 'package:bestlab/pages/login_page.dart';
-import 'package:bestlab/pages/system_list_page.dart'; // Import your SystemList page
-import 'package:bestlab/pages/user_list_page.dart'; // Import your UserList page
-import 'login_page.dart'; // Import AuthService
+import 'package:bestlab/pages/system_list_page.dart';
+import 'package:bestlab/pages/user_list_page.dart';
+import 'package:bestlab/pages/device_list_page.dart'; // Import your DeviceList page
+import 'aboutUs.dart';
+import 'package:flutter/material.dart';
+import 'package:bestlab/components/themeProvider.dart';
+import 'package:provider/provider.dart';
 
 class Dashboard extends StatelessWidget {
-  final Map<String, dynamic> userData; // Store user data
+  final Map<String, dynamic> userData;
 
-  Dashboard({required this.userData}); // Constructor to accept user data
+  Dashboard({required this.userData});
 
   var height, width;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final AuthService authService = AuthService(); // Initialize AuthService
+  final AuthService authService = AuthService();
 
   @override
   Widget build(BuildContext context) {
     height = MediaQuery.of(context).size.height;
     width = MediaQuery.of(context).size.width;
+
+    // Get the current theme provider from the context
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Scaffold(
       key: _scaffoldKey,
-      drawer: _drawer(context), // Pass the context here
+      drawer: _drawer(context, themeProvider), // Pass the themeProvider to the drawer
       body: Container(
-        color: Color.fromRGBO(75, 117, 198, 1),
+        color: themeProvider.isDarkMode // Use themeProvider to check for dark mode
+            ? Colors.black
+            : Color.fromRGBO(75, 117, 198, 1),
         width: width,
         child: Column(
           children: [
@@ -70,7 +79,7 @@ class Dashboard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'Hello ${userData['username']}!', // Display user name from userData
+                          'Hello ${userData['username']}!',
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.white54,
@@ -86,7 +95,9 @@ class Dashboard extends StatelessWidget {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[900]
+                      : Colors.white,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(30),
                     topRight: Radius.circular(30),
@@ -97,7 +108,7 @@ class Dashboard extends StatelessWidget {
                 child: SingleChildScrollView(
                   child: GridView.builder(
                     shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(), // Disable grid view's scrolling
+                    physics: NeverScrollableScrollPhysics(),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       childAspectRatio: 1.1,
@@ -106,13 +117,14 @@ class Dashboard extends StatelessWidget {
                     itemBuilder: (context, index) {
                       if (index == 0) {
                         return InkWell(
-                          onTap: () {
+                          onTap: () async {
+                            var systems = await authService.getSystems(); // Fetch systems from MongoDB
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => SystemList(
-                                  systems: ['System 1', 'System 2'], // Replace with actual system data
-                                  userData: userData, // Pass the user data to the SystemList page
+                                  systems: systems, // Pass the fetched systems
+                                  userData: userData,
                                 ),
                               ),
                             );
@@ -122,7 +134,9 @@ class Dashboard extends StatelessWidget {
                                 vertical: 8, horizontal: 20),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(20),
-                              color: Colors.white,
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[800]
+                                  : Colors.white,
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black26,
@@ -136,10 +150,13 @@ class Dashboard extends StatelessWidget {
                               children: [
                                 Icon(Icons.build_circle_outlined, size: 50,),
                                 Text(
-                                  "System",
+                                  "Systems",
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
+                                    color: themeProvider.isDarkMode
+                                        ? Colors.white
+                                        : Colors.black,
                                   ),
                                 ),
                               ],
@@ -149,11 +166,11 @@ class Dashboard extends StatelessWidget {
                       } else if (index == 1 && userData['systemRole'] == 'admin') {
                         return InkWell(
                           onTap: () async {
-                            var users = await authService.getAllUsers(); // Fetch users from MongoDB
+                            var users = await authService.getAllUsers();
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => UserList(), // No need to pass users manually
+                                builder: (context) => UserList(),
                               ),
                             );
                           },
@@ -162,7 +179,9 @@ class Dashboard extends StatelessWidget {
                                 vertical: 8, horizontal: 20),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(20),
-                              color: Colors.white,
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[800]
+                                  : Colors.white,
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black26,
@@ -180,6 +199,57 @@ class Dashboard extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
+                                    color: themeProvider.isDarkMode
+                                        ? Colors.white
+                                        : Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      } else if (index == 2) {
+                        return InkWell(
+                          onTap: () async {
+                            var allDevices = await authService.getAllDevices(); // Fetch all devices
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => DeviceList(
+                                  systemName: "All Devices",
+                                  devices: allDevices,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            margin: EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 20),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[800]
+                                  : Colors.white,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  spreadRadius: 1,
+                                  blurRadius: 6,
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                Icon(Icons.devices, size: 50,),
+                                Text(
+                                  "Devices",
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: themeProvider.isDarkMode
+                                        ? Colors.white
+                                        : Colors.black,
                                   ),
                                 ),
                               ],
@@ -194,7 +264,9 @@ class Dashboard extends StatelessWidget {
                                 vertical: 8, horizontal: 20),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(20),
-                              color: Colors.white,
+                              color: themeProvider.isDarkMode
+                                  ? Colors.grey[800]
+                                  : Colors.white,
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black26,
@@ -212,6 +284,9 @@ class Dashboard extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
+                                    color: themeProvider.isDarkMode
+                                        ? Colors.white
+                                        : Colors.black,
                                   ),
                                 ),
                               ],
@@ -220,7 +295,7 @@ class Dashboard extends StatelessWidget {
                         );
                       }
                     },
-                    itemCount: 6, // Adjust the item count based on your design
+                    itemCount: 3, // Adjust the item count based on the number of grid items
                   ),
                 ),
               ),
@@ -231,19 +306,21 @@ class Dashboard extends StatelessWidget {
     );
   }
 
-  Widget _drawer(BuildContext context) => Drawer(
+  Widget _drawer(BuildContext context, ThemeProvider themeProvider) => Drawer(
     child: Column(
       children: <Widget>[
         DrawerHeader(
           decoration: BoxDecoration(
-            color: Color.fromRGBO(75, 117, 198, 1),
+            color: themeProvider.isDarkMode
+                ? Colors.grey[900]
+                : Color.fromRGBO(75, 117, 198, 1),
           ),
-          margin: EdgeInsets.zero, // Ensure no margin
-          padding: EdgeInsets.zero, // Ensure no padding
+          margin: EdgeInsets.zero,
+          padding: EdgeInsets.zero,
           child: Container(
-            width: double.infinity, // Ensures the header takes the full width
+            width: double.infinity,
             alignment: Alignment.centerLeft,
-            padding: EdgeInsets.all(16), // Add some padding inside the header
+            padding: EdgeInsets.all(16),
             child: Text(
               'Menu',
               style: TextStyle(
@@ -256,26 +333,61 @@ class Dashboard extends StatelessWidget {
         Expanded(
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: themeProvider.isDarkMode
+                  ? Colors.black
+                  : Colors.white,
             ),
             child: ListView(
               padding: EdgeInsets.zero,
-              children: _menuItems.map((item) => ListTile(
-                title: Text(
-                  item,
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 18,
+              children: [
+                ..._menuItems.map((item) => ListTile(
+                  title: Text(
+                    item,
+                    style: TextStyle(
+                      color: themeProvider.isDarkMode
+                          ? Colors.white
+                          : Colors.black,
+                      fontSize: 18,
+                    ),
+                  ),
+                  onTap: () {
+                    _scaffoldKey.currentState?.openEndDrawer();
+                    if (item == 'Sign Out') {
+                      _handleSignOut(context);
+                    }
+                    if (item == 'About us') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AboutUsPage(),
+                        ),
+                      );
+                    }
+                  },
+                )).toList(),
+                Divider(),
+                SwitchListTile(
+                  title: Text(
+                    "Dark Mode",
+                    style: TextStyle(
+                      color: themeProvider.isDarkMode
+                          ? Colors.white
+                          : Colors.black,
+                      fontSize: 18,
+                    ),
+                  ),
+                  value: themeProvider.isDarkMode,
+                  onChanged: (value) {
+                    themeProvider.toggleTheme(); // Toggle the theme
+                  },
+                  secondary: Icon(
+                    themeProvider.isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                    color: themeProvider.isDarkMode
+                        ? Colors.white
+                        : Colors.black,
                   ),
                 ),
-                onTap: () {
-                  _scaffoldKey.currentState?.openEndDrawer();
-                  if (item == 'Sign Out') {
-                    _handleSignOut(context);
-                  }
-                  // Add your onTap code here for other items!
-                },
-              )).toList(),
+              ],
             ),
           ),
         ),
@@ -331,7 +443,7 @@ class Dashboard extends StatelessWidget {
 }
 
 final List<String> _menuItems = <String>[
-  'About',
+  'About us',
   'Contact',
   'Settings',
   'Sign Out',
