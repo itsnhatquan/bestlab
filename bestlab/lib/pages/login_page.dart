@@ -227,6 +227,21 @@ class AuthService {
     }
   }
 
+  Future<bool> addUser(Map<String, dynamic> user) async {
+    try {
+      await db.open();
+      var collection = db.collection(collectionName);
+      await collection.insert(user);
+      await db.close();
+      return true; // Successfully added the user
+    } catch (e) {
+      print('Error adding user: $e');
+      return false; // Failed to add the user
+    } finally {
+      await db.close();
+    }
+  }
+
   Future<void> updateUserRole(String userId, String newRole) async {
     try {
       var db = await mongo.Db.create(mongoUrl);
@@ -298,69 +313,66 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: ThemeData.light(),  // Fixed light theme
-      child: Scaffold(
-        resizeToAvoidBottomInset: false,
-        backgroundColor: Colors.grey[300],
-        body: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 50),
-                  Image.asset('lib/images/logo.png', height: 293),
-                  const SizedBox(height: 50),
-                  MyTextfieldStateful(
-                    controller: usernameController,
-                    hintText: 'Username',
-                    labelText: 'Username',
-                    obscureText: false,
-                    showEyeIcon: false,
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      backgroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[900] : Colors.grey[300],
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 50),
+                Image.asset('lib/images/logo.png', height: 293),
+                const SizedBox(height: 50),
+                MyTextfieldStateful(
+                  controller: usernameController,
+                  hintText: 'Username',
+                  labelText: 'Username',
+                  obscureText: false,
+                  showEyeIcon: false,
+                ),
+                const SizedBox(height: 10),
+                MyTextfieldStateful(
+                  controller: passwordController,
+                  hintText: 'Password',
+                  labelText: 'Password',
+                  showEyeIcon: true,
+                ),
+                const SizedBox(height: 10),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Forgot Password?',
+                        style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600]),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  MyTextfieldStateful(
-                    controller: passwordController,
-                    hintText: 'Password',
-                    labelText: 'Password',
-                    showEyeIcon: true,
+                ),
+                const SizedBox(height: 25),
+                AnimatedOpacity(
+                  opacity: _buttonOpacity,
+                  duration: Duration(milliseconds: 300),
+                  child: MyButton(
+                    text: 'Sign In',
+                    onTap: () => signUserIn(context),
                   ),
-                  const SizedBox(height: 10),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Text(
-                          'Forgot Password?',
-                          style: TextStyle(color: Colors.grey[600]),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 25),
-                  AnimatedOpacity(
-                    opacity: _buttonOpacity,
-                    duration: Duration(milliseconds: 300),
-                    child: MyButton(
-                      text: 'Sign In',
-                      onTap: () => signUserIn(context),
-                    ),
-                  ),
-                  const SizedBox(height: 50),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => SignUpPage()),
-                      );
-                    },
-                    child: Text('Not a member? Register now'),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-              ),
+                ),
+                const SizedBox(height: 50),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SignUpPage()),
+                    );
+                  },
+                  child: Text('Not a member? Register now'),
+                ),
+                const SizedBox(height: 10),
+              ],
             ),
           ),
         ),

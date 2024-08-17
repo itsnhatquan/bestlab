@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:bestlab/components/themeProvider.dart';
 import 'package:bestlab/pages/login_page.dart';
+import 'package:bestlab/pages/user_create_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

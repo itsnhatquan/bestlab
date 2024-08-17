@@ -4,6 +4,7 @@ import 'package:bestlab/components/my_search_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:bestlab/components/themeProvider.dart';
 import 'login_page.dart'; // Ensure this imports the AuthService
+import 'user_create_page.dart'; // Import the UserSetting page
 
 class UserList extends StatefulWidget {
   @override
@@ -160,6 +161,15 @@ class _UserListState extends State<UserList> {
     });
   }
 
+  // void _navigateToUserSetting(Map<String, dynamic> userData) {
+  //   Navigator.push(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (context) => UserCreate(),
+  //     ),
+  //   );
+  // }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -219,7 +229,8 @@ class _UserListState extends State<UserList> {
                                   icon: Icons.person,
                                   text: filteredUsers[index]['username'],
                                   subText: 'User ID: ${filteredUsers[index]['userID']}',
-                                  onTap: () {},
+                                  onTap: () => {},
+                                  // onTap: () => _navigateToUserSetting(filteredUsers[index]),
                                   onDismissed: () => _removeItem(index),
                                   actions: [
                                     IconButton(
@@ -240,6 +251,23 @@ class _UserListState extends State<UserList> {
                             ),
                     ),
                   ],
+                ),
+                floatingActionButton: FloatingActionButton(
+                  foregroundColor: Color.fromRGBO(75, 117, 198, 1),
+                  backgroundColor: themeProvider.isDarkMode ? Colors.grey[700]! : Colors.white,
+                  shape: CircleBorder(
+                    eccentricity: 0,
+                    side: BorderSide(color: Color.fromRGBO(75, 117, 198, 1), width: 2.0),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => UserCreate(),
+                      ),
+                    );
+                  },
+                  child: Icon(Icons.add, color: themeProvider.isDarkMode ? Colors.white : Colors.black),
                 ),
     );
   }
