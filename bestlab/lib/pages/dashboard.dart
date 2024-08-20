@@ -6,6 +6,7 @@ import 'aboutUs.dart';
 import 'package:flutter/material.dart';
 import 'package:bestlab/components/themeProvider.dart';
 import 'package:provider/provider.dart';
+import 'user_setting.dart';
 
 class Dashboard extends StatelessWidget {
   final Map<String, dynamic> userData;
@@ -163,25 +164,40 @@ class Dashboard extends StatelessWidget {
                             ),
                           ),
                         );
-                      } else if (index == 1 && userData['systemRole'] == 'admin') {
+                      } else if (index == 1) {  // No role check here, "Users" tab always shows
                         return InkWell(
                           onTap: () async {
-                            var users = await authService.getAllUsers();
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => UserList(),
-                              ),
-                            );
+                            if (userData['systemRole'].toLowerCase() == 'admin') {
+                              // If the role is 'admin', fetch all users and navigate to the UserList page
+                              var users = await authService.getAllUsers();
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => UserList(),
+                                ),
+                              );
+                            } else if (userData['systemRole'].toLowerCase() == 'user') {
+                              // If the role is 'user', navigate to the UserSetting page
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => UserSetting(
+                                    userId: userData['userID'],
+                                    username: userData['username'],
+                                    role: userData['systemRole'],
+                                    systems: userData['systemAccess'] is String
+                                        ? [userData['systemAccess']]
+                                        : List<String>.from(userData['systemAccess'] ?? []),
+                                  ),
+                                ),
+                              );
+                            }
                           },
                           child: Container(
-                            margin: EdgeInsets.symmetric(
-                                vertical: 8, horizontal: 20),
+                            margin: EdgeInsets.symmetric(vertical: 8, horizontal: 20),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(20),
-                              color: themeProvider.isDarkMode
-                                  ? Colors.grey[800]
-                                  : Colors.white,
+                              color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black26,
@@ -193,15 +209,13 @@ class Dashboard extends StatelessWidget {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
-                                Icon(Icons.person, size: 50,),
+                                Icon(Icons.person, size: 50),
                                 Text(
                                   "Users",
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
-                                    color: themeProvider.isDarkMode
-                                        ? Colors.white
-                                        : Colors.black,
+                                    color: themeProvider.isDarkMode ? Colors.white : Colors.black,
                                   ),
                                 ),
                               ],
@@ -295,7 +309,7 @@ class Dashboard extends StatelessWidget {
                         );
                       }
                     },
-                    itemCount: 3, // Adjust the item count based on the number of grid items
+                    itemCount: 4, // Adjust the item count based on the number of grid items
                   ),
                 ),
               ),
@@ -422,6 +436,7 @@ class Dashboard extends StatelessWidget {
       );
     }
   }
+
 
   Widget _navBarItems() => Row(
     mainAxisAlignment: MainAxisAlignment.end,

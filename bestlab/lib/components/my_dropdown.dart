@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 class MyDropdown extends StatefulWidget {
   final String hintText;
   final String labelText;
-  final List<String> selectedItems;
+  final List<dynamic> selectedItems;
   final List<String> items;
   final Function(List<String>) onChanged;
 

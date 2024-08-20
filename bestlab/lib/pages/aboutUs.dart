@@ -40,7 +40,9 @@ class AboutUsPage extends StatelessWidget {
             color: Colors.white,
           ),
         ),
-        backgroundColor: Color.fromRGBO(75, 117, 198, 1),
+        backgroundColor: themeProvider.isDarkMode // Use themeProvider to check for dark mode
+            ? Colors.black
+            : Color.fromRGBO(75, 117, 198, 1),
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back,

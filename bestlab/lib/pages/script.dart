@@ -9,8 +9,6 @@ import 'package:mongo_dart/mongo_dart.dart' as mongo;
 //   print(user);
 //   await db.close();
 // }
-import 'package:mongo_dart/mongo_dart.dart' as mongo;
-
 void main() async {
   const mongoUrl = 'mongodb+srv://nguyenducdai:0Obkv5QtElG92eNp@bestlab-prod-1.foxbvln.mongodb.net/Authentication?retryWrites=true&w=majority&appName=BESTLAB-PROD-1';
   const dbName = 'Authentication';

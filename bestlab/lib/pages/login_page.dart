@@ -1,16 +1,17 @@
 // login_page.dart
 import 'package:flutter/material.dart';
 import 'package:bestlab/components/my_button.dart';
-import 'package:bestlab/components/my_textfield.dart';
-import 'package:bestlab/components/square_tile.dart';
 import 'package:bestlab/components/my_textfield_stateful.dart';
 import 'package:mongo_dart/mongo_dart.dart' as mongo;
+import 'package:provider/provider.dart';
 import 'home_page.dart';
 import 'sign_up_page.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import 'admin_home_page.dart';
+import 'package:bestlab/components/themeProvider.dart';
+import 'package:bestlab/components/user_provider.dart';
 
 void main() {
   runApp(MyApp());
@@ -34,6 +35,7 @@ class AuthService {
   final String dbName = 'Authentication';
   final String collectionName = 'userAuth';
   final Uuid uuid = Uuid();
+  mongo.Db? _db;
   final mongo.Db db = mongo.Db('mongodb://nguyenducdai:0Obkv5QtElG92eNp@ac-vwtniuz-shard-00-00.foxbvln.mongodb.net:27017,ac-vwtniuz-shard-00-01.foxbvln.mongodb.net:27017,ac-vwtniuz-shard-00-02.foxbvln.mongodb.net:27017/Authentication?replicaSet=atlas-4210ho-shard-0&ssl=true&authSource=admin');
 
   Future<void> deleteSystem(String systemName) async {
@@ -139,9 +141,42 @@ class AuthService {
     }
   }
 
+  Future<mongo.Db> _getDbConnection() async {
+    if (_db == null || _db!.state == mongo.State.CLOSED) {
+      _db = mongo.Db('mongodb://nguyenducdai:0Obkv5QtElG92eNp@ac-vwtniuz-shard-00-00.foxbvln.mongodb.net:27017,ac-vwtniuz-shard-00-01.foxbvln.mongodb.net:27017,ac-vwtniuz-shard-00-02.foxbvln.mongodb.net:27017/Authentication?replicaSet=atlas-4210ho-shard-0&ssl=true&authSource=admin');
+      await _db!.open();
+    }
+    return _db!;
+  }
+
+  Future<void> closeDbConnection() async {
+    if (_db != null && _db!.state == mongo.State.OPEN) {
+      await _db!.close();
+    }
+  }
+
+  Future<String?> getUserRole(String username) async {
+    try {
+      final db = await _getDbConnection();
+      var collection = db.collection(collectionName);
+      var user = await collection.findOne({'username': username});
+      
+      if (user != null) {
+        return user['systemRole'];
+      } else {
+        return null;
+      }
+    } catch (e) {
+      print('Error fetching user role: $e');
+      return null;
+    } finally {
+      await closeDbConnection();
+    }
+  }
+
+
   Future<Map<String, dynamic>?> signIn(String username, String password) async {
     try {
-      var db = await mongo.Db.create(mongoUrl);
       await db.open();
       print('Connected to the database');
 
@@ -286,11 +321,14 @@ class _LoginPageState extends State<LoginPage> {
     if (user != null) {
       String role = user['systemRole'];
 
+      // Store the user globally using UserProvider
+      Provider.of<UserProvider>(context, listen: false).setUser(user);
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Login Successful!')),
       );
 
-      if (role == 'admin') {
+      if (role.toLowerCase() == 'admin') {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -311,11 +349,14 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context); // Access the theme provider
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      backgroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[900] : Colors.grey[300],
+      backgroundColor: themeProvider.isDarkMode ? Colors.grey[900] : Colors.grey[300],
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -347,7 +388,7 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       Text(
                         'Forgot Password?',
-                        style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600]),
+                        style: TextStyle(color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey[600]),
                       ),
                     ],
                   ),

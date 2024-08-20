@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:bestlab/components/themeProvider.dart';
 import 'login_page.dart'; // Ensure this imports the AuthService
 import 'user_create_page.dart'; // Import the UserSetting page
+import 'user_setting.dart';
 
 class UserList extends StatefulWidget {
   @override
@@ -34,7 +35,7 @@ class _UserListState extends State<UserList> {
   Future<void> fetchUsers() async {
     try {
       List<Map<String, dynamic>> allUsers = await authService.getAllUsers();
-      users = allUsers.where((user) => user['systemRole'] == 'user').toList();
+      users = allUsers.where((user) => user['systemRole'] == 'user' || user['systemRole'] == 'User').toList();
 
       setState(() {
         filteredUsers = users;
@@ -229,7 +230,21 @@ class _UserListState extends State<UserList> {
                                   icon: Icons.person,
                                   text: filteredUsers[index]['username'],
                                   subText: 'User ID: ${filteredUsers[index]['userID']}',
-                                  onTap: () => {},
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => UserSetting(
+                                          userId: filteredUsers[index]['userID'], // Provide the selected user's ID
+                                          username: filteredUsers[index]['username'], // Provide the selected user's username
+                                          role: filteredUsers[index]['systemRole'], // Provide the selected user's role
+                                          systems: filteredUsers[index]['systemAccess'] is String
+                                                      ? [filteredUsers[index]['systemAccess']] // Wrap the string in a list
+                                                      : List<String>.from(filteredUsers[index]['systemAccess'] ?? []), // Ensure it's a List<String>                                        ),
+                                        ), 
+                                      ),
+                                    );
+                                  },
                                   // onTap: () => _navigateToUserSetting(filteredUsers[index]),
                                   onDismissed: () => _removeItem(index),
                                   actions: [

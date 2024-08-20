@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:bestlab/components/themeProvider.dart';
+import 'package:bestlab/components/user_provider.dart';
 import 'package:bestlab/pages/login_page.dart';
-import 'package:bestlab/pages/user_create_page.dart';
+import 'package:bestlab/components/themeProvider.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  final themeProvider = ThemeProvider(isDarkMode: false);
-  await themeProvider.loadThemePreference();
-
+void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => themeProvider,
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider(isDarkMode: false)),
+      ],
       child: MyApp(),
     ),
   );
@@ -20,12 +19,12 @@ void main() async {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-
     return MaterialApp(
-      theme: themeProvider.themeData,
+      title: 'BestLab',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
       home: LoginPage(),
-      debugShowCheckedModeBanner: false,
     );
   }
 }
