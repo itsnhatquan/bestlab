@@ -8,14 +8,35 @@ import 'package:bestlab/components/themeProvider.dart';
 import 'package:provider/provider.dart';
 import 'user_setting.dart';
 
-class Dashboard extends StatelessWidget {
+class Dashboard extends StatefulWidget {
   final Map<String, dynamic> userData;
 
   Dashboard({required this.userData});
 
-  var height, width;
+  @override
+  _DashboardState createState() => _DashboardState();
+}
+
+class _DashboardState extends State<Dashboard> {
+  Map<String, dynamic>? currentUser;
+  late double height, width;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final AuthService authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCurrentUser();
+  }
+
+  Future<void> _fetchCurrentUser() async {
+    var user = await authService.fetchCurrentLoggedInUser(context);
+    if (user != null) {
+      setState(() {
+        currentUser = user;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,14 +100,16 @@ class Dashboard extends StatelessWidget {
                             letterSpacing: 1,
                           ),
                         ),
-                        Text(
-                          'Hello ${userData['username']}!',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white54,
-                            letterSpacing: 1,
+                        if (currentUser != null) ...[
+                          Text(
+                            'Hello ${currentUser!['username']}!',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.white54,
+                              letterSpacing: 1,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
@@ -125,7 +148,7 @@ class Dashboard extends StatelessWidget {
                               MaterialPageRoute(
                                 builder: (context) => SystemList(
                                   systems: systems, // Pass the fetched systems
-                                  userData: userData,
+                                  userData: currentUser!,
                                 ),
                               ),
                             );
@@ -167,7 +190,7 @@ class Dashboard extends StatelessWidget {
                       } else if (index == 1) {  // No role check here, "Users" tab always shows
                         return InkWell(
                           onTap: () async {
-                            if (userData['systemRole'].toLowerCase() == 'admin') {
+                            if (currentUser!['systemRole'].toLowerCase() == 'admin') {
                               // If the role is 'admin', fetch all users and navigate to the UserList page
                               var users = await authService.getAllUsers();
                               Navigator.push(
@@ -176,18 +199,18 @@ class Dashboard extends StatelessWidget {
                                   builder: (context) => UserList(),
                                 ),
                               );
-                            } else if (userData['systemRole'].toLowerCase() == 'user') {
+                            } else if (currentUser!['systemRole'].toLowerCase() == 'user') {
                               // If the role is 'user', navigate to the UserSetting page
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => UserSetting(
-                                    userId: userData['userID'],
-                                    username: userData['username'],
-                                    role: userData['systemRole'],
-                                    systems: userData['systemAccess'] is String
-                                        ? [userData['systemAccess']]
-                                        : List<String>.from(userData['systemAccess'] ?? []),
+                                    userId: currentUser!['userID'],
+                                    username: currentUser!['username'],
+                                    role: currentUser!['systemRole'],
+                                    systems: currentUser!['systemAccess'] is String
+                                        ? [currentUser!['systemAccess']]
+                                        : List<String>.from(currentUser!['systemAccess'] ?? []),
                                   ),
                                 ),
                               );
@@ -232,6 +255,7 @@ class Dashboard extends StatelessWidget {
                                 builder: (context) => DeviceList(
                                   systemName: "All Devices",
                                   devices: allDevices,
+                                  userData: currentUser!,
                                 ),
                               ),
                             );
@@ -436,7 +460,6 @@ class Dashboard extends StatelessWidget {
       );
     }
   }
-
 
   Widget _navBarItems() => Row(
     mainAxisAlignment: MainAxisAlignment.end,

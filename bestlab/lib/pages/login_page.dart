@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:bestlab/components/my_button.dart';
 import 'package:bestlab/components/my_textfield_stateful.dart';
 import 'package:mongo_dart/mongo_dart.dart' as mongo;
+import 'package:mongo_dart/mongo_dart.dart' show where, modify; // Add this line
 import 'package:provider/provider.dart';
 import 'home_page.dart';
 import 'sign_up_page.dart';
@@ -63,6 +64,24 @@ class AuthService {
       await db.close();
     }
   }
+
+  Future<void> updateSystemName(String oldName, String newName) async {
+    try {
+      await db.open();
+      var collection = db.collection('systems');
+      await collection.update(
+        where.eq('name', oldName),
+        modify.set('name', newName),
+      );
+      print('System name updated from $oldName to $newName.');
+    } catch (e) {
+      print('Error updating system name: $e');
+    } finally {
+      await db.close();
+    }
+  }
+
+
   
   Future<bool> isDeviceAvailable(String deviceName) async {
     await db.open();
@@ -72,27 +91,57 @@ class AuthService {
     return system == null;
   }
 
-  Future<void> addDevice(String deviceName) async {
+  Future<bool> updateDeviceName(String oldName, String newName) async {
     try {
-      await db.open();
-      var collection = db.collection('devices');
+      final db = await _getDbConnection();
+      final collection = db.collection('devices');
 
-      var existingDevice = await collection.findOne({'name': deviceName});
-      if (existingDevice == null) {
-        await collection.insertOne({
-          'name': deviceName,
-          'createdAt': DateTime.now().toIso8601String(),
-        });
-        print('Device $deviceName added to the collection.');
+      // Find the device by its current name and update the name field
+      final result = await collection.update(
+        where.eq('name', oldName),
+        modify.set('name', newName),
+      );
+
+      // Check if the update was acknowledged (optional depending on your setup)
+      if (result['nModified'] != null && result['nModified'] > 0) {
+        return true; // Update was successful
+      } else if (result['updatedExisting'] != null && result['updatedExisting']) {
+        // If nModified is not available, fall back to checking if an existing document was updated
+        return true;
       } else {
-        print('Device $deviceName already exists.');
+        return false; // No documents were modified or updatedExisting was false
       }
     } catch (e) {
-      print('Error adding device to MongoDB: $e');
+      print('Error updating device name: $e');
+      return false; // Return false if there was an error
     } finally {
-      await db.close();
+      await closeDbConnection();
     }
   }
+
+
+  Future<void> addDevice(String deviceName, String deviceUrl) async {
+  try {
+    await db.open();
+    var collection = db.collection('devices');
+
+    var existingDevice = await collection.findOne({'name': deviceName});
+    if (existingDevice == null) {
+      await collection.insertOne({
+        'name': deviceName,
+        'url': deviceUrl, // Store the device URL
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+      print('Device $deviceName added to the collection.');
+    } else {
+      print('Device $deviceName already exists.');
+    }
+  } catch (e) {
+    print('Error adding device to MongoDB: $e');
+  } finally {
+    await db.close();
+  }
+}
 
   Future<List<String>> getSystems() async {
     await db.open();
@@ -170,6 +219,37 @@ class AuthService {
       return null;
     } finally {
       await closeDbConnection();
+    }
+  }
+
+  Future<Map<String, dynamic>?> fetchCurrentLoggedInUser(BuildContext context) async {
+    try {
+      // Accessing the UserProvider to get the user data stored during login
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      Map<String, dynamic>? currentUser = userProvider.user;
+
+      // If user data is already stored in the provider, return it
+      if (currentUser != null) {
+        return currentUser;
+      }
+
+      // If not found, you might want to load the user data from persistent storage
+      // e.g., from SharedPreferences, SecureStorage, or directly from the database
+      // Here's an example with SharedPreferences:
+      /*
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? userJson = prefs.getString('loggedInUser');
+      if (userJson != null) {
+        currentUser = jsonDecode(userJson);
+        userProvider.setUser(currentUser); // Set the user in UserProvider
+        return currentUser;
+      }
+      */
+
+      return null; // Return null if no user is logged in
+    } catch (e) {
+      print('Error fetching current logged-in user: $e');
+      return null;
     }
   }
 
@@ -276,44 +356,43 @@ class AuthService {
   }
 
   Future<bool> updateUser(String userId, Map<String, dynamic> updatedData) async {
-  try {
-    final db = await _getDbConnection();
-    final collection = db.collection(collectionName);
+    try {
+      final db = await _getDbConnection();
+      final collection = db.collection(collectionName);
 
-    // Initialize the modifier builder
-    var modifier = mongo.ModifierBuilder();
+      // Initialize the modifier builder
+      var modifier = mongo.ModifierBuilder();
 
-    // Add each key-value pair in updatedData to the modifier
-    updatedData.forEach((key, value) {
-      modifier.set(key, value);
-    });
+      // Add each key-value pair in updatedData to the modifier
+      updatedData.forEach((key, value) {
+        modifier.set(key, value);
+      });
 
-    // Perform the update
-    final result = await collection.update(
-      mongo.where.eq('userID', userId),
-      modifier,
-      multiUpdate: false, // Only update one document
-      writeConcern: mongo.WriteConcern.ACKNOWLEDGED,
-    );
+      // Perform the update
+      final result = await collection.update(
+        mongo.where.eq('userID', userId),
+        modifier,
+        multiUpdate: false, // Only update one document
+        writeConcern: mongo.WriteConcern.ACKNOWLEDGED,
+      );
 
-    // Check if any documents were modified
-    if (result['nModified'] != null && result['nModified'] > 0) {
-      return true; // Update was successful
-    } else if (result['n'] != null && result['n'] == 0) {
-      // If no document was matched, consider it a failure
-      return false;
-    } else {
-      // Document matched but not modified (no actual changes needed)
-      return true;
+      // Check if any documents were modified
+      if (result['nModified'] != null && result['nModified'] > 0) {
+        return true; // Update was successful
+      } else if (result['n'] != null && result['n'] == 0) {
+        // If no document was matched, consider it a failure
+        return false;
+      } else {
+        // Document matched but not modified (no actual changes needed)
+        return true;
+      }
+    } catch (e) {
+      print('Error updating user: $e');
+      return false; // Return false if there was an error
+    } finally {
+      await closeDbConnection();
     }
-  } catch (e) {
-    print('Error updating user: $e');
-    return false; // Return false if there was an error
-  } finally {
-    await closeDbConnection();
   }
-}
-
 
   Future<void> updateUserRole(String userId, String newRole) async {
     try {
@@ -362,6 +441,12 @@ class _LoginPageState extends State<LoginPage> {
       // Store the user globally using UserProvider
       Provider.of<UserProvider>(context, listen: false).setUser(user);
 
+      // Optionally, store the user in SharedPreferences or other storage
+      /*
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      prefs.setString('loggedInUser', jsonEncode(user));
+      */
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Login Successful!')),
       );
@@ -386,6 +471,7 @@ class _LoginPageState extends State<LoginPage> {
       );
     }
   }
+
 
 
   @override

@@ -212,14 +212,6 @@ class _UserListState extends State<UserList> {
             Navigator.of(context).pop();
           },
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.settings),
-            onPressed: () {
-              // Add your settings logic here
-            },
-          ),
-        ],
         backgroundColor: themeProvider.isDarkMode ? Colors.grey[900]! : Color.fromRGBO(75, 117, 198, 1),
       ),
       body: isLoading
@@ -270,6 +262,7 @@ class _UserListState extends State<UserList> {
                     ),
                   ],
                 ),
+      
       floatingActionButton: FloatingActionButton(
         foregroundColor: Color.fromRGBO(75, 117, 198, 1),
         backgroundColor: themeProvider.isDarkMode ? Colors.grey[700]! : Colors.white,

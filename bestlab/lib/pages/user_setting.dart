@@ -192,35 +192,37 @@ class _UserSettingState extends State<UserSetting> {
                   showEyeIcon: true,
                 ),
                 const SizedBox(height: 15),
-                // Role selection using the custom MyDropdown component with single selection behavior
-                MyDropdown(
-                  hintText: 'Select a role...',
-                  labelText: 'Role',
-                  selectedItems: selectedRole != null ? [selectedRole!] : [],
-                  items: ['Admin', 'User'],
-                  isSingleSelection: true, // Enforce single selection for role
-                  onChanged: (List<String> newValue) {
-                    setState(() {
-                      if (newValue.isNotEmpty) {
-                        selectedRole = newValue.first; // Only allow one role to be selected
-                      }
-                    });
-                  },
-                ),
-                const SizedBox(height: 15),
-                if (selectedRole?.toLowerCase() != 'admin') ...[
+                if (loggedInUserRole?.toLowerCase() == 'admin') ...[
+                  // Role selection using the custom MyDropdown component with single selection behavior
                   MyDropdown(
-                    hintText: 'Select systems...',
-                    labelText: 'Systems',
-                    selectedItems: selectedSystems,
-                    items: systems,
-                    isSingleSelection: false, // Allow multiple selections for systems
+                    hintText: 'Select a role...',
+                    labelText: 'Role',
+                    selectedItems: selectedRole != null ? [selectedRole!] : [],
+                    items: ['Admin', 'User'],
+                    isSingleSelection: true, // Enforce single selection for role
                     onChanged: (List<String> newValue) {
                       setState(() {
-                        selectedSystems = newValue;
+                        if (newValue.isNotEmpty) {
+                          selectedRole = newValue.first; // Only allow one role to be selected
+                        }
                       });
                     },
                   ),
+                  const SizedBox(height: 15),
+                  if (selectedRole?.toLowerCase() != 'admin') ...[
+                    MyDropdown(
+                      hintText: 'Select systems...',
+                      labelText: 'Systems',
+                      selectedItems: selectedSystems,
+                      items: systems,
+                      isSingleSelection: false, // Allow multiple selections for systems
+                      onChanged: (List<String> newValue) {
+                        setState(() {
+                          selectedSystems = newValue;
+                        });
+                      },
+                    ),
+                  ],
                 ],
                 const SizedBox(height: 30),
                 MyButton(

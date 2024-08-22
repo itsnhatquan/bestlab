@@ -18,19 +18,18 @@ class SystemList extends StatefulWidget {
 }
 
 class _SystemListState extends State<SystemList> {
-  late List<String> systems;
-  late List<String> filteredSystems;
+  late List<String> systems = []; // Initialize systems with an empty list
+  late List<String> filteredSystems = []; // Initialize filteredSystems with an empty list
   late TextEditingController searchController;
   late mongo.Db db;  // Use the alias 'mongo' for Db class
   late AuthService authService; // Instantiate AuthService
+  Map<String, dynamic>? currentUser;
 
   @override
   void initState() {
     super.initState();
-    systems = widget.systems;
-    filteredSystems = List.from(systems); // Initialize filteredSystems from systems
-    searchController = TextEditingController();
     authService = AuthService(); // Initialize AuthService
+    searchController = TextEditingController();
 
     // Initialize the MongoDB connection
     db = mongo.Db('mongodb://nguyenducdai:0Obkv5QtElG92eNp@ac-vwtniuz-shard-00-00.foxbvln.mongodb.net:27017,ac-vwtniuz-shard-00-01.foxbvln.mongodb.net:27017,ac-vwtniuz-shard-00-02.foxbvln.mongodb.net:27017/Authentication?replicaSet=atlas-4210ho-shard-0&ssl=true&authSource=admin');
@@ -40,10 +39,34 @@ class _SystemListState extends State<SystemList> {
       print('Error connecting to MongoDB: $e');
     });
 
+    // Fetch the current logged-in user and filter systems
+    _fetchAndFilterSystems();
+
     // Listen to changes in the search query
     searchController.addListener(() {
       _filterSystems(searchController.text);
     });
+  }
+
+  Future<void> _fetchAndFilterSystems() async {
+    currentUser = await authService.fetchCurrentLoggedInUser(context);
+
+    if (currentUser != null) {
+      bool isAdmin = currentUser!['systemRole'].toLowerCase() == 'admin';
+
+      // Filter systems based on the user's systemAccess or show all if Admin
+      if (isAdmin) {
+        systems = widget.systems;
+      } else {
+        systems = widget.systems.where((system) {
+          return currentUser!['systemAccess'].contains(system);
+        }).toList();
+      }
+
+      setState(() {
+        filteredSystems = List.from(systems);
+      });
+    }
   }
 
   @override
@@ -117,6 +140,13 @@ class _SystemListState extends State<SystemList> {
           'devicesCount': devices.length,
           'devices': devices,
         });
+        
+        // Update the UI immediately after adding the system
+        setState(() {
+          systems.add(systemName);
+          filteredSystems.add(systemName);
+        });
+
         print('System $systemName added to the collection.');
         return true; // Indicate that the system was successfully added
       } else {
@@ -135,16 +165,16 @@ class _SystemListState extends State<SystemList> {
     List<String> availableDevices = await authService.getAllDevices();
     List<String> filteredDevices = List.from(availableDevices);
     TextEditingController searchController = TextEditingController();
-    String? errorMessage;
+    String? errorMessage; // To store error messages
 
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text('Add New System'),
-          content: StatefulBuilder(
-            builder: (BuildContext context, StateSetter setState) {
-              return Column(
+        return StatefulBuilder( // Use StatefulBuilder to manage state within the dialog
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Add New System'),
+              content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
@@ -152,7 +182,7 @@ class _SystemListState extends State<SystemList> {
                     onChanged: (value) {
                       newSystemName = value;
                       setState(() {
-                        errorMessage = null; // Reset error message on name change
+                        errorMessage = null; // Reset error message when the user starts typing
                       });
                     },
                   ),
@@ -167,8 +197,8 @@ class _SystemListState extends State<SystemList> {
                       setState(() {
                         filteredDevices = availableDevices
                             .where((device) => device
-                                .toLowerCase()
-                                .contains(value.toLowerCase()))
+                            .toLowerCase()
+                            .contains(value.toLowerCase()))
                             .toList();
                       });
                     },
@@ -186,7 +216,7 @@ class _SystemListState extends State<SystemList> {
                           onChanged: (bool? value) async {
                             if (value == true) {
                               bool isDeviceAvailable =
-                                  await authService.isDeviceAvailable(device);
+                              await authService.isDeviceAvailable(device);
                               if (isDeviceAvailable) {
                                 setState(() {
                                   selectedDevices.add(device);
@@ -194,13 +224,7 @@ class _SystemListState extends State<SystemList> {
                               } else {
                                 setState(() {
                                   errorMessage =
-                                      'Device $device is already associated with another system.';
-                                });
-                                // Hide error message after 3 seconds
-                                Future.delayed(Duration(seconds: 3), () {
-                                  setState(() {
-                                    errorMessage = null;
-                                  });
+                                  'Device $device is already associated with another system.';
                                 });
                               }
                             } else {
@@ -213,81 +237,63 @@ class _SystemListState extends State<SystemList> {
                       }).toList(),
                     ),
                   ),
-                  if (errorMessage != null) ...[
-                    SizedBox(height: 10),
-                    Text(
-                      errorMessage!,
-                      style: TextStyle(color: Colors.red),
+                  if (errorMessage != null) // Display error message if there is one
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10.0),
+                      child: Text(
+                        errorMessage!,
+                        style: TextStyle(color: Colors.red),
+                      ),
                     ),
-                  ],
                 ],
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              child: Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('Add'),
-              onPressed: () async {
-                // Validate the system name and selected devices
-                if (newSystemName.isEmpty) {
-                  setState(() {
-                    errorMessage = 'System name cannot be empty.';
-                  });
-                  // Hide error message after 3 seconds
-                  Future.delayed(Duration(seconds: 3), () {
-                    setState(() {
-                      errorMessage = null;
-                    });
-                  });
-                  return;
-                }
-                if (selectedDevices.isEmpty) {
-                  setState(() {
-                    errorMessage = 'You must select at least one device.';
-                  });
-                  // Hide error message after 3 seconds
-                  Future.delayed(Duration(seconds: 3), () {
-                    setState(() {
-                      errorMessage = null;
-                    });
-                  });
-                  return;
-                }
+              ),
+              actions: [
+                TextButton(
+                  child: Text('Cancel'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                TextButton(
+                  child: Text('Add'),
+                  onPressed: () async {
+                    // Check if the system name is filled
+                    if (newSystemName.isEmpty) {
+                      setState(() {
+                        errorMessage = 'System name cannot be empty.';
+                      });
+                      return;
+                    }
 
-                // Check if the system name is unique
-                bool success = await _addSystem(newSystemName, selectedDevices);
-                if (!success) {
-                  setState(() {
-                    errorMessage = 'System name already exists. Please choose another name.';
-                  });
-                  // Hide error message after 3 seconds
-                  Future.delayed(Duration(seconds: 3), () {
-                    setState(() {
-                      errorMessage = null;
-                    });
-                  });
-                  return;
-                }
+                    // Check if at least one device is selected
+                    if (selectedDevices.isEmpty) {
+                      setState(() {
+                        errorMessage = 'You must select at least one device.';
+                      });
+                      return;
+                    }
 
-                // If successful, close the dialog and update the UI
-                setState(() {
-                  systems.add(newSystemName);
-                  filteredSystems.add(newSystemName);
-                });
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
+                    // Check if the system name already exists
+                    bool success = await _addSystem(newSystemName, selectedDevices);
+                    if (!success) {
+                      setState(() {
+                        errorMessage = 'System name already exists. Please choose another name.';
+                      });
+                      return;
+                    }
+
+                    // Close the dialog (UI update is already handled in _addSystem)
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
         );
       },
     );
   }
+
 
   Future<void> _navigateToDeviceList(String systemName) async {
     List<String> devices = await authService.getSystemDevices(systemName);
@@ -297,6 +303,7 @@ class _SystemListState extends State<SystemList> {
         builder: (context) => DeviceList(
           systemName: systemName,
           devices: devices,
+          userData: currentUser!,
         ),
       ),
     );
@@ -325,14 +332,6 @@ class _SystemListState extends State<SystemList> {
             Navigator.of(context).pop();
           },
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.settings),
-            onPressed: () {
-              // Add your settings logic here
-            },
-          ),
-        ],
         backgroundColor: themeProvider.isDarkMode ? Colors.grey[900]! : Color.fromRGBO(75, 117, 198, 1),
       ),
       body: Column(
@@ -393,18 +392,20 @@ class _SystemListState extends State<SystemList> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        foregroundColor: Color.fromRGBO(75, 117, 198, 1),
-        backgroundColor: themeProvider.isDarkMode ? Colors.grey[700]! : Colors.white,
-        shape: CircleBorder(
-          eccentricity: 0,
-          side: BorderSide(color: Color.fromRGBO(75, 117, 198, 1), width: 2.0),
-        ),
-        onPressed: () {
-          _showAddSystemDialog();
-        },
-        child: Icon(Icons.add, color: themeProvider.isDarkMode ? Colors.white : Colors.black),
-      ),
+      floatingActionButton: widget.userData['systemRole'].toLowerCase() == 'admin'
+        ? FloatingActionButton(
+            foregroundColor: Color.fromRGBO(75, 117, 198, 1),
+            backgroundColor: themeProvider.isDarkMode ? Colors.grey[700]! : Colors.white,
+            shape: CircleBorder(
+              eccentricity: 0,
+              side: BorderSide(color: Color.fromRGBO(75, 117, 198, 1), width: 2.0),
+            ),
+            onPressed: () {
+              _showAddSystemDialog();
+            },
+            child: Icon(Icons.add, color: themeProvider.isDarkMode ? Colors.white : Colors.black),
+          )
+        : null,
     );
   }
 }
