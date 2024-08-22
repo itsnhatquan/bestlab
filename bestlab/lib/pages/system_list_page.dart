@@ -33,7 +33,7 @@ class _SystemListState extends State<SystemList> {
     authService = AuthService(); // Initialize AuthService
 
     // Initialize the MongoDB connection
-    db = mongo.Db('mongodb://your_connection_string_here');
+    db = mongo.Db('mongodb://nguyenducdai:0Obkv5QtElG92eNp@ac-vwtniuz-shard-00-00.foxbvln.mongodb.net:27017,ac-vwtniuz-shard-00-01.foxbvln.mongodb.net:27017,ac-vwtniuz-shard-00-02.foxbvln.mongodb.net:27017/Authentication?replicaSet=atlas-4210ho-shard-0&ssl=true&authSource=admin');
     db.open().then((_) {
       print('Connected to MongoDB');
     }).catchError((e) {

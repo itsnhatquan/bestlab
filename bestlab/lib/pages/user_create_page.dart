@@ -160,24 +160,30 @@ class _UserCreateState extends State<UserCreate> {
                   labelText: 'Role',
                   selectedItems: selectedRole != null ? [selectedRole!] : [],
                   items: ['Admin', 'User'],
+                  isSingleSelection: true, // Enforce single selection for role
                   onChanged: (List<String> newValue) {
                     setState(() {
-                      selectedRole = newValue.isNotEmpty ? newValue.first : null;
+                      if (newValue.isNotEmpty) {
+                        selectedRole = newValue.first; // Only allow one role to be selected
+                      }
                     });
                   },
                 ),
                 const SizedBox(height: 15),
-                MyDropdown(
-                  hintText: 'Select systems...',
-                  labelText: 'Systems',
-                  selectedItems: selectedSystems,
-                  items: systems, // Populate dropdown with systems fetched from MongoDB
-                  onChanged: (List<String> newValue) {
-                    setState(() {
-                      selectedSystems = newValue;
-                    });
-                  },
-                ),
+                if (selectedRole?.toLowerCase() != 'admin') ...[
+                  MyDropdown(
+                    hintText: 'Select systems...',
+                    labelText: 'Systems',
+                    selectedItems: selectedSystems,
+                    items: systems,
+                    isSingleSelection: false, // Allow multiple selections for systems
+                    onChanged: (List<String> newValue) {
+                      setState(() {
+                        selectedSystems = newValue;
+                      });
+                    },
+                  ),
+                ],
                 const SizedBox(height: 30),
                 MyButton(
                   text: 'Create new user',

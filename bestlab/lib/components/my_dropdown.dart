@@ -8,6 +8,7 @@ class MyDropdown extends StatefulWidget {
   final List<dynamic> selectedItems;
   final List<String> items;
   final Function(List<String>) onChanged;
+  final bool isSingleSelection;
 
   const MyDropdown({
     super.key,
@@ -16,6 +17,7 @@ class MyDropdown extends StatefulWidget {
     required this.selectedItems,
     required this.items,
     required this.onChanged,
+    this.isSingleSelection = false, // Control single/multiple selection behavior
   });
 
   @override
@@ -74,31 +76,40 @@ class _MyDropdownState extends State<MyDropdown> {
                     return InkWell(
                       onTap: () {
                         setState(() {
-                          if (isSelected) {
-                            selectedItems.remove(value);
+                          if (widget.isSingleSelection) {
+                            // Single selection: Clear previous selections and select the new one
+                            selectedItems = [value];
+                            widget.onChanged(selectedItems);
+                            Navigator.pop(context); // Close the dropdown after selection
                           } else {
-                            selectedItems.add(value);
+                            // Multiple selection behavior
+                            if (isSelected) {
+                              selectedItems.remove(value);
+                            } else {
+                              selectedItems.add(value);
+                            }
+                            widget.onChanged(selectedItems);
                           }
-                          widget.onChanged(selectedItems);
                         });
                       },
                       child: Row(
                         children: [
-                          Checkbox(
-                            value: isSelected,
-                            onChanged: (bool? checked) {
-                              setState(() {
-                                if (checked == true) {
-                                  selectedItems.add(value);
-                                } else {
-                                  selectedItems.remove(value);
-                                }
-                                widget.onChanged(selectedItems);
-                              });
-                            },
-                            activeColor: isDarkMode ? Colors.white : Colors.black,
-                            checkColor: isDarkMode ? Colors.black : Colors.white,
-                          ),
+                          if (!widget.isSingleSelection) // Show checkbox only for multiple selection
+                            Checkbox(
+                              value: isSelected,
+                              onChanged: (bool? checked) {
+                                setState(() {
+                                  if (checked == true) {
+                                    selectedItems.add(value);
+                                  } else {
+                                    selectedItems.remove(value);
+                                  }
+                                  widget.onChanged(selectedItems);
+                                });
+                              },
+                              activeColor: isDarkMode ? Colors.white : Colors.black,
+                              checkColor: isDarkMode ? Colors.black : Colors.white,
+                            ),
                           Text(
                             value,
                             style: TextStyle(color: isDarkMode ? Colors.white : Colors.black),

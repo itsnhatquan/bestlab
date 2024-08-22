@@ -103,25 +103,24 @@ class AuthService {
   }
 
   Future<List<String>> getAllDevices() async {
-  List<String> allDevices = [];
-  try {
-    await db.open();
-    var collection = db.collection('devices');
-    var devices = await collection.find().toList();
+    List<String> allDevices = [];
+    try {
+      await db.open();
+      var collection = db.collection('devices');
+      var devices = await collection.find().toList();
 
-    for (var device in devices) {
-      if (device['name'] != null) {
-        allDevices.add(device['name'].toString());
+      for (var device in devices) {
+        if (device['name'] != null) {
+          allDevices.add(device['name'].toString());
+        }
       }
+    } catch (e) {
+      print('Error fetching all devices: $e');
+    } finally {
+      await db.close();
     }
-  } catch (e) {
-    print('Error fetching all devices: $e');
-  } finally {
-    await db.close();
+    return allDevices;
   }
-  return allDevices;
-}
-
 
   Future<List<String>> getSystemDevices(String systemName) async {
     try {
@@ -173,7 +172,6 @@ class AuthService {
       await closeDbConnection();
     }
   }
-
 
   Future<Map<String, dynamic>?> signIn(String username, String password) async {
     try {
@@ -276,6 +274,46 @@ class AuthService {
       await db.close();
     }
   }
+
+  Future<bool> updateUser(String userId, Map<String, dynamic> updatedData) async {
+  try {
+    final db = await _getDbConnection();
+    final collection = db.collection(collectionName);
+
+    // Initialize the modifier builder
+    var modifier = mongo.ModifierBuilder();
+
+    // Add each key-value pair in updatedData to the modifier
+    updatedData.forEach((key, value) {
+      modifier.set(key, value);
+    });
+
+    // Perform the update
+    final result = await collection.update(
+      mongo.where.eq('userID', userId),
+      modifier,
+      multiUpdate: false, // Only update one document
+      writeConcern: mongo.WriteConcern.ACKNOWLEDGED,
+    );
+
+    // Check if any documents were modified
+    if (result['nModified'] != null && result['nModified'] > 0) {
+      return true; // Update was successful
+    } else if (result['n'] != null && result['n'] == 0) {
+      // If no document was matched, consider it a failure
+      return false;
+    } else {
+      // Document matched but not modified (no actual changes needed)
+      return true;
+    }
+  } catch (e) {
+    print('Error updating user: $e');
+    return false; // Return false if there was an error
+  } finally {
+    await closeDbConnection();
+  }
+}
+
 
   Future<void> updateUserRole(String userId, String newRole) async {
     try {

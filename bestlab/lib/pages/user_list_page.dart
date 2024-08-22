@@ -162,14 +162,32 @@ class _UserListState extends State<UserList> {
     });
   }
 
-  // void _navigateToUserSetting(Map<String, dynamic> userData) {
-  //   Navigator.push(
-  //     context,
-  //     MaterialPageRoute(
-  //       builder: (context) => UserCreate(),
-  //     ),
-  //   );
-  // }
+  Future<void> _navigateToUserSetting(Map<String, dynamic> userData) async {
+    final updatedUser = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UserSetting(
+          userId: userData['userID'], // Provide the selected user's ID
+          username: userData['username'], // Provide the selected user's username
+          role: userData['systemRole'], // Provide the selected user's role
+          systems: userData['systemAccess'] is String
+              ? [userData['systemAccess']] // Wrap the string in a list
+              : List<String>.from(userData['systemAccess'] ?? []), // Ensure it's a List<String>
+        ),
+      ),
+    );
+
+    // Check if the updated user data is returned
+    if (updatedUser != null) {
+      int index = users.indexWhere((user) => user['userID'] == updatedUser['userID']);
+      if (index != -1) {
+        setState(() {
+          users[index] = updatedUser;
+          _filterUsers(searchController.text); // Re-filter the list with the updated data
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -230,22 +248,7 @@ class _UserListState extends State<UserList> {
                                   icon: Icons.person,
                                   text: filteredUsers[index]['username'],
                                   subText: 'User ID: ${filteredUsers[index]['userID']}',
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => UserSetting(
-                                          userId: filteredUsers[index]['userID'], // Provide the selected user's ID
-                                          username: filteredUsers[index]['username'], // Provide the selected user's username
-                                          role: filteredUsers[index]['systemRole'], // Provide the selected user's role
-                                          systems: filteredUsers[index]['systemAccess'] is String
-                                                      ? [filteredUsers[index]['systemAccess']] // Wrap the string in a list
-                                                      : List<String>.from(filteredUsers[index]['systemAccess'] ?? []), // Ensure it's a List<String>                                        ),
-                                        ), 
-                                      ),
-                                    );
-                                  },
-                                  // onTap: () => _navigateToUserSetting(filteredUsers[index]),
+                                  onTap: () => _navigateToUserSetting(filteredUsers[index]),
                                   onDismissed: () => _removeItem(index),
                                   actions: [
                                     IconButton(
@@ -267,23 +270,23 @@ class _UserListState extends State<UserList> {
                     ),
                   ],
                 ),
-                floatingActionButton: FloatingActionButton(
-                  foregroundColor: Color.fromRGBO(75, 117, 198, 1),
-                  backgroundColor: themeProvider.isDarkMode ? Colors.grey[700]! : Colors.white,
-                  shape: CircleBorder(
-                    eccentricity: 0,
-                    side: BorderSide(color: Color.fromRGBO(75, 117, 198, 1), width: 2.0),
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => UserCreate(),
-                      ),
-                    );
-                  },
-                  child: Icon(Icons.add, color: themeProvider.isDarkMode ? Colors.white : Colors.black),
-                ),
+      floatingActionButton: FloatingActionButton(
+        foregroundColor: Color.fromRGBO(75, 117, 198, 1),
+        backgroundColor: themeProvider.isDarkMode ? Colors.grey[700]! : Colors.white,
+        shape: CircleBorder(
+          eccentricity: 0,
+          side: BorderSide(color: Color.fromRGBO(75, 117, 198, 1), width: 2.0),
+        ),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => UserCreate(),
+            ),
+          );
+        },
+        child: Icon(Icons.add, color: themeProvider.isDarkMode ? Colors.white : Colors.black),
+      ),
     );
   }
 }

@@ -42,8 +42,8 @@ class _UserSettingState extends State<UserSetting> {
     usernameController = TextEditingController(text: widget.username);
     passwordController = TextEditingController();
     confirmPasswordController = TextEditingController();
-    selectedRole = widget.role;
-    selectedSystems = widget.systems;
+    selectedRole = widget.role; // Initialize selectedRole with passed role
+    selectedSystems = widget.systems; // Initialize selectedSystems with passed systems
 
     fetchSystems();
     fetchLoggedInUserRole(); // Fetch the role of the logged-in user
@@ -65,6 +65,69 @@ class _UserSettingState extends State<UserSetting> {
       setState(() {});
     }
   }
+
+  Future<void> saveChanges() async {
+    String newUsername = usernameController.text.trim();
+    String newPassword = passwordController.text.trim();
+    String confirmNewPassword = confirmPasswordController.text.trim();
+
+    // Check if password confirmation matches
+    if (newPassword.isNotEmpty && newPassword != confirmNewPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Passwords do not match")),
+      );
+      return;
+    }
+
+    // Prepare the data to be updated
+    Map<String, dynamic> updatedData = {};
+
+    if (newUsername.isNotEmpty && newUsername != widget.username) {
+      updatedData['username'] = newUsername;
+    }
+
+    if (newPassword.isNotEmpty) {
+      updatedData['password'] = newPassword;
+    }
+
+    if (selectedRole != null && selectedRole != widget.role) {
+      updatedData['systemRole'] = selectedRole;
+    }
+
+    if (selectedSystems.isNotEmpty && selectedSystems != widget.systems) {
+      updatedData['systemAccess'] = selectedSystems;
+    }
+
+    // Update the user data if there are changes
+    if (updatedData.isNotEmpty) {
+      bool success = await authService.updateUser(widget.userId, updatedData);
+
+      if (success) {
+        // Update the local data to reflect the changes
+        Map<String, dynamic> updatedUser = {
+          'userID': widget.userId,
+          'username': newUsername.isNotEmpty ? newUsername : widget.username,
+          'systemRole': selectedRole ?? widget.role,
+          'systemAccess': selectedSystems.isNotEmpty ? selectedSystems : widget.systems,
+        };
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("User settings updated successfully")),
+        );
+
+        Navigator.of(context).pop(updatedUser); // Pass the updated data back
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to update user settings")),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("No changes were made")),
+      );
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -129,25 +192,29 @@ class _UserSettingState extends State<UserSetting> {
                   showEyeIcon: true,
                 ),
                 const SizedBox(height: 15),
-                // Display dropdowns only if the logged-in user is an admin
-                if (loggedInUserRole?.toLowerCase() == 'admin') ...[
-                  MyDropdown(
-                    hintText: 'Select a role...',
-                    labelText: 'Role',
-                    selectedItems: selectedRole != null ? [selectedRole!] : [],
-                    items: ['Admin', 'User'],
-                    onChanged: (List<String> newValue) {
-                      setState(() {
-                        selectedRole = newValue.isNotEmpty ? newValue.first : null;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 15),
+                // Role selection using the custom MyDropdown component with single selection behavior
+                MyDropdown(
+                  hintText: 'Select a role...',
+                  labelText: 'Role',
+                  selectedItems: selectedRole != null ? [selectedRole!] : [],
+                  items: ['Admin', 'User'],
+                  isSingleSelection: true, // Enforce single selection for role
+                  onChanged: (List<String> newValue) {
+                    setState(() {
+                      if (newValue.isNotEmpty) {
+                        selectedRole = newValue.first; // Only allow one role to be selected
+                      }
+                    });
+                  },
+                ),
+                const SizedBox(height: 15),
+                if (selectedRole?.toLowerCase() != 'admin') ...[
                   MyDropdown(
                     hintText: 'Select systems...',
                     labelText: 'Systems',
                     selectedItems: selectedSystems,
                     items: systems,
+                    isSingleSelection: false, // Allow multiple selections for systems
                     onChanged: (List<String> newValue) {
                       setState(() {
                         selectedSystems = newValue;
@@ -158,9 +225,7 @@ class _UserSettingState extends State<UserSetting> {
                 const SizedBox(height: 30),
                 MyButton(
                   text: 'Save changes',
-                  onTap: () {
-                    // Save changes logic
-                  },
+                  onTap: saveChanges,
                 ),
                 const SizedBox(height: 100),
               ],
