@@ -1,17 +1,17 @@
 import 'dart:ui';
 
-import 'package:bestlab/pages/api_service.dart';
+import 'package:bestlab/pages/api/api_service.dart';
 import 'package:bestlab/pages/cpu_usage_chart.dart';
-import 'package:bestlab/pages/device_list_page.dart';
-import 'package:bestlab/pages/device_list_screen.dart';
-import 'package:bestlab/pages/system_list_page.dart';
-import 'package:bestlab/pages/system_list_screen.dart';
-import 'package:bestlab/pages/user_setting_page.dart';
+import 'package:bestlab/pages/common/device_list_page.dart';
+import 'package:bestlab/pages/common/device_list_screen.dart';
+import 'package:bestlab/pages/common/system_list_page.dart';
+import 'package:bestlab/pages/common/system_list_screen.dart';
+import 'package:bestlab/pages/user/user_setting_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'pages/login_page.dart';
 import 'pages/home_page.dart';
-import 'pages/user_list_page.dart';
+import 'pages/user/user_list_page.dart';
 
 
 import 'package:flutter/material.dart';
