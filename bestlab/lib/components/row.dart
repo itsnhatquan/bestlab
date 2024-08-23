@@ -9,6 +9,7 @@ class myRow extends StatelessWidget {
   final Function onTap;
   final Function onDismissed;
   final List<Widget>? actions; // Optional list of actions
+  final String userRole; // Add userRole to the constructor
 
   myRow({
     required this.icon,
@@ -17,6 +18,7 @@ class myRow extends StatelessWidget {
     required this.onTap,
     required this.onDismissed,
     this.actions,
+    required this.userRole, // Add this line
   });
 
   @override
@@ -41,57 +43,63 @@ class myRow extends StatelessWidget {
               ),
             ],
           ),
-          child: Dismissible(
-            key: Key(text),
-            background: Container(), // No background for swipe right
-            secondaryBackground: Container(
-              decoration: BoxDecoration(
-                color: Colors.red,
-                borderRadius: BorderRadius.circular(12), // Ensure border radius matches
-              ),
-              alignment: Alignment.centerRight,
-              padding: EdgeInsets.symmetric(horizontal: 20.0),
-              child: Icon(
-                Icons.delete,
-                color: Colors.white,
-              ),
-            ),
-            confirmDismiss: (direction) async {
-              if (direction == DismissDirection.startToEnd) {
-                // Prevent dismissing on swipe right
-                return false;
-              }
-              // Allow dismissing on swipe left
-              return true;
-            },
-            onDismissed: (direction) {
-              if (direction == DismissDirection.endToStart) {
-                onDismissed();
-              }
-            },
-            child: ListTile(
-              leading: Icon(icon, color: isDarkMode ? Colors.white : Colors.black),
-              title: Text(
-                text,
-                style: TextStyle(
-                  color: isDarkMode ? Colors.white : Colors.black,
-                ),
-              ),
-              subtitle: subText != null
-                  ? Text(
-                      subText!,
-                      style: TextStyle(
-                        color: isDarkMode ? Colors.white70 : Colors.black87,
-                      ),
-                    )
-                  : null,
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: actions ?? [],
-              ),
-            ),
-          ),
+          child: userRole.toLowerCase() == 'admin'
+              ? Dismissible(
+                  key: Key(text),
+                  background: Container(), // No background for swipe right
+                  secondaryBackground: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(12), // Ensure border radius matches
+                    ),
+                    alignment: Alignment.centerRight,
+                    padding: EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Icon(
+                      Icons.delete,
+                      color: Colors.white,
+                    ),
+                  ),
+                  confirmDismiss: (direction) async {
+                    if (direction == DismissDirection.startToEnd) {
+                      // Prevent dismissing on swipe right
+                      return false;
+                    }
+                    // Allow dismissing on swipe left
+                    return true;
+                  },
+                  onDismissed: (direction) {
+                    if (direction == DismissDirection.endToStart) {
+                      onDismissed();
+                    }
+                  },
+                  child: _buildListTile(isDarkMode),
+                )
+              : _buildListTile(isDarkMode), // Render ListTile without Dismissible for non-admin users
         ),
+      ),
+    );
+  }
+
+  ListTile _buildListTile(bool isDarkMode) {
+    return ListTile(
+      leading: Icon(icon, color: isDarkMode ? Colors.white : Colors.black),
+      title: Text(
+        text,
+        style: TextStyle(
+          color: isDarkMode ? Colors.white : Colors.black,
+        ),
+      ),
+      subtitle: subText != null
+          ? Text(
+              subText!,
+              style: TextStyle(
+                color: isDarkMode ? Colors.white70 : Colors.black87,
+              ),
+            )
+          : null,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: actions ?? [],
       ),
     );
   }

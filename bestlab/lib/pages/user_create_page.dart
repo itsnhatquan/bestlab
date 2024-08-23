@@ -22,7 +22,7 @@ class _UserCreateState extends State<UserCreate> {
 
   String? selectedRole;
   List<String> selectedSystems = [];
-  List<String> systems = [];
+  List<Map<String, dynamic>> systems = [];
   final Uuid uuid = Uuid();
 
   @override
@@ -54,7 +54,7 @@ class _UserCreateState extends State<UserCreate> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('User created successfully! Role: $selectedRole, Systems: ${selectedSystems.join(", ")}')),
         );
-        Navigator.of(context).pop(); // Go back to the previous screen
+        Navigator.of(context).pop(newUser); // Pass the new user data back to the UserList page
       } else {
         showError('Failed to create user');
       }
@@ -175,7 +175,7 @@ class _UserCreateState extends State<UserCreate> {
                     hintText: 'Select systems...',
                     labelText: 'Systems',
                     selectedItems: selectedSystems,
-                    items: systems,
+                    items: systems.map((system) => system['name'].toString()).toList(), // Convert List<Map<String, dynamic>> to List<String>,
                     isSingleSelection: false, // Allow multiple selections for systems
                     onChanged: (List<String> newValue) {
                       setState(() {

@@ -5,10 +5,10 @@ import 'package:bestlab/components/row.dart';
 import 'package:bestlab/components/my_search_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:bestlab/components/themeProvider.dart';
-import 'package:bestlab/pages/login_page.dart'; // Assuming you have an AuthService class that contains getSystemDevices
+import 'package:bestlab/pages/login_page.dart'; // Assuming your AuthService is in login_page.dart
 
 class SystemList extends StatefulWidget {
-  final List<String> systems;
+  final List<Map<String, dynamic>> systems;
   final Map<String, dynamic> userData;
 
   SystemList({required this.systems, required this.userData});
@@ -18,12 +18,13 @@ class SystemList extends StatefulWidget {
 }
 
 class _SystemListState extends State<SystemList> {
-  late List<String> systems = []; // Initialize systems with an empty list
-  late List<String> filteredSystems = []; // Initialize filteredSystems with an empty list
+  late List<Map<String, dynamic>> systems = []; // Initialize systems with an empty list
+  late List<Map<String, dynamic>> filteredSystems = []; // Initialize filteredSystems with an empty list
   late TextEditingController searchController;
   late mongo.Db db;  // Use the alias 'mongo' for Db class
   late AuthService authService; // Instantiate AuthService
   Map<String, dynamic>? currentUser;
+  bool isLoading = true; // Add isLoading variable
 
   @override
   void initState() {
@@ -35,12 +36,10 @@ class _SystemListState extends State<SystemList> {
     db = mongo.Db('mongodb://nguyenducdai:0Obkv5QtElG92eNp@ac-vwtniuz-shard-00-00.foxbvln.mongodb.net:27017,ac-vwtniuz-shard-00-01.foxbvln.mongodb.net:27017,ac-vwtniuz-shard-00-02.foxbvln.mongodb.net:27017/Authentication?replicaSet=atlas-4210ho-shard-0&ssl=true&authSource=admin');
     db.open().then((_) {
       print('Connected to MongoDB');
+      _fetchAndFilterSystems();
     }).catchError((e) {
       print('Error connecting to MongoDB: $e');
     });
-
-    // Fetch the current logged-in user and filter systems
-    _fetchAndFilterSystems();
 
     // Listen to changes in the search query
     searchController.addListener(() {
@@ -54,17 +53,19 @@ class _SystemListState extends State<SystemList> {
     if (currentUser != null) {
       bool isAdmin = currentUser!['systemRole'].toLowerCase() == 'admin';
 
+      // Fetch systems with device counts from the database
+      List<Map<String, dynamic>> allSystems = await authService.getSystems();
+
       // Filter systems based on the user's systemAccess or show all if Admin
-      if (isAdmin) {
-        systems = widget.systems;
-      } else {
-        systems = widget.systems.where((system) {
-          return currentUser!['systemAccess'].contains(system);
-        }).toList();
-      }
+      systems = isAdmin
+        ? allSystems
+        : allSystems.where((system) {
+            return currentUser!['systemAccess'].contains(system['name']);
+          }).toList();
 
       setState(() {
         filteredSystems = List.from(systems);
+        isLoading = false; // Set isLoading to false once data is fetched
       });
     }
   }
@@ -76,8 +77,16 @@ class _SystemListState extends State<SystemList> {
     super.dispose();
   }
 
+  void _filterSystems(String query) {
+    setState(() {
+      filteredSystems = systems
+          .where((system) => system['name'].toLowerCase().contains(query.toLowerCase()))
+          .toList();
+    });
+  }
+
   Future<void> _removeSystem(int index) async {
-    final systemName = filteredSystems[index];
+    final systemName = filteredSystems[index]['name'];
 
     final shouldDelete = await showDialog<bool>(
       context: context,
@@ -122,40 +131,35 @@ class _SystemListState extends State<SystemList> {
     }
   }
 
-  void _filterSystems(String query) {
-    setState(() {
-      filteredSystems = systems
-          .where((system) => system.toLowerCase().contains(query.toLowerCase()))
-          .toList();
-    });
-  }
-
   Future<bool> _addSystem(String systemName, List<String> devices) async {
     try {
       var collection = db.collection('systems');
       var existingSystem = await collection.findOne({'name': systemName});
       if (existingSystem == null) {
+        int deviceCount = devices.length;
         await collection.insertOne({
           'name': systemName,
-          'devicesCount': devices.length,
+          'devicesCount': deviceCount,  // Ensure this field is set
           'devices': devices,
         });
-        
-        // Update the UI immediately after adding the system
+
+        // Update the systems list and filteredSystems list in one go
         setState(() {
-          systems.add(systemName);
-          filteredSystems.add(systemName);
+          systems.add({
+            'name': systemName,
+            'devicesCount': deviceCount,
+            'devices': devices,
+          });
+          filteredSystems = List.from(systems); // Update filteredSystems to match systems
         });
 
-        print('System $systemName added to the collection.');
-        return true; // Indicate that the system was successfully added
+        return true;
       } else {
-        print('System $systemName already exists.');
-        return false; // Indicate that the system already exists
+        return false;
       }
     } catch (e) {
       print('Error adding system to MongoDB: $e');
-      return false; // Indicate that an error occurred
+      return false;
     }
   }
 
@@ -294,7 +298,6 @@ class _SystemListState extends State<SystemList> {
     );
   }
 
-
   Future<void> _navigateToDeviceList(String systemName) async {
     List<String> devices = await authService.getSystemDevices(systemName);
     Navigator.push(
@@ -334,64 +337,84 @@ class _SystemListState extends State<SystemList> {
         ),
         backgroundColor: themeProvider.isDarkMode ? Colors.grey[900]! : Color.fromRGBO(75, 117, 198, 1),
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 15),
-          MySearchBar(
-            controller: searchController,
-            hintText: 'Search systems...',
-            onChanged: _filterSystems,
-            backgroundColor: themeProvider.isDarkMode ? Colors.grey[800]! : Colors.white,
-            textColor: themeProvider.isDarkMode ? Colors.white : Colors.black,
-            hintColor: themeProvider.isDarkMode ? Colors.white54 : Colors.black54,
-          ),
-          const SizedBox(height: 15),
-          Expanded(
-            child: ListView.builder(
-              itemCount: filteredSystems.length,
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 10.0), // Add bottom padding
-                  child: Dismissible(
-                    key: Key(filteredSystems[index]),
-                    background: Container(color: Colors.green),
-                    secondaryBackground: Container(
-                      color: Colors.red,
-                      alignment: Alignment.centerRight,
-                      padding: EdgeInsets.symmetric(horizontal: 20.0),
-                      child: Icon(
-                        Icons.delete,
-                        color: Colors.white,
+      body: isLoading // Display loading spinner while data is being fetched
+        ? Center(child: CircularProgressIndicator())
+        : Column(
+          children: [
+            const SizedBox(height: 15),
+            MySearchBar(
+              controller: searchController,
+              hintText: 'Search systems...',
+              onChanged: _filterSystems,
+              backgroundColor: themeProvider.isDarkMode ? Colors.grey[800]! : Colors.white,
+              textColor: themeProvider.isDarkMode ? Colors.white : Colors.black,
+              hintColor: themeProvider.isDarkMode ? Colors.white54 : Colors.black54,
+            ),
+            const SizedBox(height: 15),
+            Expanded(
+              child: ListView.builder(
+                itemCount: filteredSystems.length,
+                itemBuilder: (context, index) {
+                  final system = filteredSystems[index];
+                  final systemName = system['name'] as String;
+                  final deviceCount = system['devicesCount'];  // Retrieve the actual device count
+
+                  print('System Name: $systemName, Device Count: $deviceCount');  // Debug print
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10.0), // Add bottom padding
+                    child: Dismissible(
+                      key: Key(systemName),
+                      background: widget.userData['systemRole'].toLowerCase() == 'admin'
+                        ? Container(color: Colors.green)
+                        : null, // Show green background only if the user is an admin
+                      secondaryBackground: widget.userData['systemRole'].toLowerCase() == 'admin'
+                          ? Container(
+                              color: Colors.red,
+                              alignment: Alignment.centerRight,
+                              padding: EdgeInsets.symmetric(horizontal: 20.0),
+                              child: Icon(
+                                Icons.delete,
+                                color: Colors.white,
+                              ),
+                            )
+                          : null, // Show red background only if the user is an admin
+                      confirmDismiss: (direction) async {
+                        if (widget.userData['systemRole'].toLowerCase() == 'admin') {
+                          if (direction == DismissDirection.endToStart) {
+                            await authService.deleteSystem(systemName);
+                            setState(() {
+                              filteredSystems.removeAt(index);
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("System $systemName deleted")),
+                            );
+                            return true;
+                          }
+                          return false;
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("Only admins can delete systems.")),
+                          );
+                          return false;
+                        }
+                      },
+                      onDismissed: (direction) {},
+                      child: myRow(
+                        icon: Icons.build_circle_outlined,
+                        text: systemName,
+                        userRole: widget.userData['systemRole'],
+                        subText: '${deviceCount ?? 0} devices', // Display the device count or default to 0 if null
+                        onTap: () => _navigateToDeviceList(systemName),
+                        onDismissed: () => _removeSystem(index),
                       ),
                     ),
-                    confirmDismiss: (direction) async {
-                      if (direction == DismissDirection.endToStart) {
-                        await authService.deleteSystem(filteredSystems[index]);
-                        setState(() {
-                          systems.removeAt(index);
-                          filteredSystems.removeAt(index);
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("System ${filteredSystems[index]} deleted")),
-                        );
-                        return true;
-                      }
-                      return false;
-                    },
-                    onDismissed: (direction) {},
-                    child: myRow(
-                      icon: Icons.build_circle_outlined,
-                      text: filteredSystems[index],
-                      onTap: () => _navigateToDeviceList(filteredSystems[index]),
-                      onDismissed: () => _removeSystem(index),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+                  );
+                },
+              ),
+            )
+          ],
+        ),
       floatingActionButton: widget.userData['systemRole'].toLowerCase() == 'admin'
         ? FloatingActionButton(
             foregroundColor: Color.fromRGBO(75, 117, 198, 1),

@@ -65,24 +65,45 @@ class AuthService {
     }
   }
 
-  Future<void> updateSystemName(String oldName, String newName) async {
+  Future<bool> updateSystem(String oldName, String newName, List<String> devices) async {
     try {
-      await db.open();
-      var collection = db.collection('systems');
-      await collection.update(
-        where.eq('name', oldName),
-        modify.set('name', newName),
-      );
-      print('System name updated from $oldName to $newName.');
+        final db = await _getDbConnection();
+        final collection = db.collection('systems');
+
+        // Build the modifier to update the system name and devices
+        final modifier = modify
+            .set('name', newName)
+            .set('devicesCount', devices.length)
+            .set('devices', devices);
+
+        // Perform the update operation without specific write concern
+        final result = await collection.update(
+            where.eq('name', oldName),
+            modifier,
+        );
+
+        // Debugging: Print the entire result to understand its structure
+        print('Update result: $result');
+
+        // Check for an 'ok' field in the result, which should be 1 on success
+        if (result['nModified'] != null && result['nModified'] > 0) {
+        return true; // Update was successful
+      } else if (result['n'] != null && result['n'] == 0) {
+        // If no document was matched, consider it a failure
+        return false;
+      } else {
+        // Document matched but not modified (no actual changes needed)
+        return true;
+      }
     } catch (e) {
-      print('Error updating system name: $e');
+      print('Error updating user: $e');
+      return false; // Return false if there was an error
     } finally {
-      await db.close();
+      await closeDbConnection();
     }
   }
 
 
-  
   Future<bool> isDeviceAvailable(String deviceName) async {
     await db.open();
     var collection = db.collection('systems');
@@ -91,18 +112,24 @@ class AuthService {
     return system == null;
   }
 
-  Future<bool> updateDeviceName(String oldName, String newName) async {
+  Future<bool> updateDevice(String oldName, String newName, String newUrl, String newDeviceID) async {
     try {
       final db = await _getDbConnection();
       final collection = db.collection('devices');
 
-      // Find the device by its current name and update the name field
+      // Build the modifier to update the name, URL, and device ID
+      final modifier = modify
+        .set('name', newName)
+        .set('url', newUrl)
+        .set('deviceID', newDeviceID);
+
+      // Find the device by its current name and apply the updates
       final result = await collection.update(
         where.eq('name', oldName),
-        modify.set('name', newName),
+        modifier,
       );
 
-      // Check if the update was acknowledged (optional depending on your setup)
+      // Check if the update was acknowledged
       if (result['nModified'] != null && result['nModified'] > 0) {
         return true; // Update was successful
       } else if (result['updatedExisting'] != null && result['updatedExisting']) {
@@ -112,43 +139,85 @@ class AuthService {
         return false; // No documents were modified or updatedExisting was false
       }
     } catch (e) {
-      print('Error updating device name: $e');
+      print('Error updating device: $e');
       return false; // Return false if there was an error
     } finally {
       await closeDbConnection();
     }
   }
 
-
-  Future<void> addDevice(String deviceName, String deviceUrl) async {
-  try {
-    await db.open();
-    var collection = db.collection('devices');
-
-    var existingDevice = await collection.findOne({'name': deviceName});
-    if (existingDevice == null) {
-      await collection.insertOne({
-        'name': deviceName,
-        'url': deviceUrl, // Store the device URL
-        'createdAt': DateTime.now().toIso8601String(),
-      });
-      print('Device $deviceName added to the collection.');
-    } else {
-      print('Device $deviceName already exists.');
+  Future<Map<String, dynamic>?> getDeviceByID(String deviceID) async {
+    try {
+      await db.open();
+      var collection = db.collection('devices');
+      var device = await collection.findOne({'deviceID': deviceID});
+      await db.close();
+      return device;
+    } catch (e) {
+      print('Error fetching device by ID: $e');
+      return null;
     }
-  } catch (e) {
-    print('Error adding device to MongoDB: $e');
-  } finally {
-    await db.close();
   }
-}
 
-  Future<List<String>> getSystems() async {
+  Future<Map<String, dynamic>?> getDeviceByName(String deviceName) async {
+    try {
+      await db.open();
+      var collection = db.collection('devices');
+      var device = await collection.findOne({'name': deviceName});
+      await db.close();
+
+      if (device != null) {
+        return device;
+      } else {
+        print('Device $deviceName not found.');
+        return null; // Return null if the device is not found
+      }
+    } catch (e) {
+      print('Error fetching device: $e');
+      return null; // Return null if there was an error
+    } finally {
+      await db.close();
+    }
+  }
+
+
+  Future<void> addDevice(String deviceName, String deviceUrl, String deviceID) async {
+    try {
+      await db.open();
+      var collection = db.collection('devices');
+
+      var existingDevice = await collection.findOne({'deviceID': deviceID});
+      if (existingDevice == null) {
+        await collection.insertOne({
+          'name': deviceName,
+          'url': deviceUrl,
+          'deviceID': deviceID,
+          'createdAt': DateTime.now().toIso8601String(),
+        });
+        print('Device $deviceName added to the collection.');
+      } else {
+        print('Device ID $deviceID already exists.');
+      }
+    } catch (e) {
+      print('Error adding device to MongoDB: $e');
+    } finally {
+      await db.close();
+    }
+  }
+
+
+  Future<List<Map<String, dynamic>>> getSystems() async {
     await db.open();
     var collection = db.collection('systems');
     var systems = await collection.find().toList();
     await db.close();
-    return systems.map((system) => system['name'].toString()).toList();
+
+    return systems.map((system) {
+      return {
+        'name': system['name'].toString(),
+        'devicesCount': system['devicesCount'], // Ensure this is directly accessing the field
+      };
+    }).toList();
   }
 
   Future<List<String>> getAllDevices() async {
@@ -170,6 +239,34 @@ class AuthService {
     }
     return allDevices;
   }
+
+  Future<Map<String, dynamic>?> getSystemByName(String systemName) async {
+    try {
+      final db = await _getDbConnection(); // Assuming _getDbConnection returns a connected MongoDB instance
+      final collection = db.collection('systems');
+
+      // Find the system by its name
+      final system = await collection.findOne(mongo.where.eq('name', systemName));
+
+      if (system != null) {
+        // Return the system details as a Map
+        return {
+          'name': system['name'].toString(),
+          'devices': List<String>.from(system['devices'] ?? []), // Ensure it's a List<String>
+          'devicesCount': system['devicesCount'] ?? 0, // Provide a default if devicesCount is missing
+        };
+      } else {
+        // Return null if the system is not found
+        return null;
+      }
+    } catch (e) {
+      print('Error retrieving system: $e');
+      return null; // Return null if there's an error
+    } finally {
+      await closeDbConnection(); // Ensure the database connection is closed
+    }
+  }
+
 
   Future<List<String>> getSystemDevices(String systemName) async {
     try {

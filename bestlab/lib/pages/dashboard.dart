@@ -26,14 +26,28 @@ class _DashboardState extends State<Dashboard> {
   @override
   void initState() {
     super.initState();
-    _fetchCurrentUser();
+    currentUser = widget.userData; // Initialize with passed user data
   }
 
-  Future<void> _fetchCurrentUser() async {
-    var user = await authService.fetchCurrentLoggedInUser(context);
-    if (user != null) {
+  Future<void> _navigateToUserSetting() async {
+    final updatedUser = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UserSetting(
+          userId: currentUser!['userID'],
+          username: currentUser!['username'],
+          role: currentUser!['systemRole'],
+          systems: currentUser!['systemAccess'] is String
+              ? [currentUser!['systemAccess']]
+              : List<String>.from(currentUser!['systemAccess'] ?? []),
+        ),
+      ),
+    );
+
+    if (updatedUser != null) {
+      // If the user was updated, update the current user and refresh the dashboard
       setState(() {
-        currentUser = user;
+        currentUser = updatedUser;
       });
     }
   }
@@ -57,7 +71,6 @@ class _DashboardState extends State<Dashboard> {
         child: Column(
           children: [
             Container(
-              decoration: BoxDecoration(),
               height: height * 0.23,
               width: width,
               child: Column(
@@ -191,7 +204,6 @@ class _DashboardState extends State<Dashboard> {
                         return InkWell(
                           onTap: () async {
                             if (currentUser!['systemRole'].toLowerCase() == 'admin') {
-                              // If the role is 'admin', fetch all users and navigate to the UserList page
                               var users = await authService.getAllUsers();
                               Navigator.push(
                                 context,
@@ -200,20 +212,7 @@ class _DashboardState extends State<Dashboard> {
                                 ),
                               );
                             } else if (currentUser!['systemRole'].toLowerCase() == 'user') {
-                              // If the role is 'user', navigate to the UserSetting page
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => UserSetting(
-                                    userId: currentUser!['userID'],
-                                    username: currentUser!['username'],
-                                    role: currentUser!['systemRole'],
-                                    systems: currentUser!['systemAccess'] is String
-                                        ? [currentUser!['systemAccess']]
-                                        : List<String>.from(currentUser!['systemAccess'] ?? []),
-                                  ),
-                                ),
-                              );
+                              await _navigateToUserSetting();
                             }
                           },
                           child: Container(
@@ -482,7 +481,5 @@ class _DashboardState extends State<Dashboard> {
 
 final List<String> _menuItems = <String>[
   'About us',
-  'Contact',
-  'Settings',
   'Sign Out',
 ];

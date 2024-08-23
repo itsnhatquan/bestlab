@@ -4,17 +4,18 @@ import 'package:bestlab/components/my_search_bar.dart';
 import 'package:bestlab/pages/login_page.dart'; // Assuming your AuthService is in login_page.dart
 import 'package:provider/provider.dart';
 import 'package:bestlab/components/themeProvider.dart';
+import 'dart:async';
 
 class DeviceList extends StatefulWidget {
   String systemName;
   final List<String> devices;
-  final Map<String, dynamic> userData; // Add userData to the constructor
+  final Map<String, dynamic> userData;
 
   DeviceList({
     super.key,
     required this.systemName,
     required this.devices,
-    required this.userData, // Add this line
+    required this.userData,
   });
 
   @override
@@ -23,61 +24,88 @@ class DeviceList extends StatefulWidget {
 
 class _DeviceListState extends State<DeviceList> {
   late List<String> devices;
-  late List<String> filteredDevices;
+  late List<String> filteredDevices = [];
   late TextEditingController searchController;
-  late AuthService authService; // Add AuthService instance
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>(); // Scaffold Key
+  late AuthService authService;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  bool isLoading = true; // Add isLoading variable
+
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
-    authService = AuthService(); // Initialize AuthService
+    authService = AuthService();
     searchController = TextEditingController();
+    _initializeDeviceList();
+  }
 
-    // Filter devices based on the user's systemAccess
-    if (widget.userData['systemRole'].toLowerCase() == 'admin') {
-      devices = widget.devices;
+  Future<void> _initializeDeviceList() async {
+    if (widget.userData['systemRole']?.toLowerCase() == 'admin') {
+      setState(() {
+        devices = widget.devices;
+        filteredDevices = devices;
+        isLoading = false; // Set isLoading to false once data is fetched
+      });
+    } else if (widget.userData['systemRole']?.toLowerCase() == 'user') {
+      List<String> userDevices = [];
+
+      for (var systemName in widget.userData['systemAccess']) {
+        List<String> systemDevices = await authService.getSystemDevices(systemName);
+        userDevices.addAll(systemDevices);
+      }
+
+      userDevices = userDevices.toSet().toList();
+
+      setState(() {
+        devices = userDevices;
+        filteredDevices = devices;
+        isLoading = false; // Set isLoading to false once data is fetched
+      });
     } else {
-      devices = widget.devices.where((device) {
-        return widget.userData['systemAccess'].contains(widget.systemName);
-      }).toList();
+      setState(() {
+        devices = [];
+        filteredDevices = devices;
+        isLoading = false; // Set isLoading to false once data is fetched
+      });
     }
-
-    filteredDevices = devices;
-
-    // Listen to changes in the search query
-    searchController.addListener(() {
-      _filterDevices(searchController.text);
-    });
   }
 
   @override
   void dispose() {
     searchController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
   void _filterDevices(String query) {
-    setState(() {
-      filteredDevices = devices
-          .where((device) => device.toLowerCase().contains(query.toLowerCase()))
-          .toList();
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      setState(() {
+        filteredDevices = devices
+            .where((device) => device.toLowerCase().contains(query.toLowerCase()))
+            .toList();
+      });
     });
   }
 
-  Future<void> _addDevice(String deviceName, String deviceUrl) async {
+  Future<void> _addDevice(String deviceName, String deviceUrl, String deviceID) async {
     try {
-      // Check if the device name already exists
       if (devices.contains(deviceName)) {
         _showSnackBar("Device \"$deviceName\" already exists");
-        return; // Prevent adding the device
+        return;
       }
 
-      // Assuming you have a way to handle the device URL in your database
-      await authService.addDevice(deviceName, deviceUrl);
+      var existingDevice = await authService.getDeviceByID(deviceID);
+      if (existingDevice != null) {
+        _showSnackBar("Device ID \"$deviceID\" already exists");
+        return;
+      }
+
+      await authService.addDevice(deviceName, deviceUrl, deviceID);
       setState(() {
         devices.add(deviceName);
-        _filterDevices(searchController.text); // Update filteredDevices based on the search query
+        _filterDevices(searchController.text);
       });
     } catch (e) {
       print('Error adding device: $e');
@@ -128,20 +156,32 @@ class _DeviceListState extends State<DeviceList> {
 
   Future<void> _editDevice(int index) async {
     String currentDeviceName = filteredDevices[index];
+    var currentDevice = await authService.getDeviceByName(currentDeviceName);
     TextEditingController deviceNameController = TextEditingController(text: currentDeviceName);
-    TextEditingController deviceUrlController = TextEditingController(); // Add URL controller
+    TextEditingController deviceUrlController = TextEditingController(text: currentDevice!['url']);
+    TextEditingController deviceIDController = TextEditingController(text: currentDevice['deviceID']);
 
     await showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Edit Device Name'),
+          title: Text('Edit Device'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: deviceNameController,
                 decoration: InputDecoration(hintText: 'Device Name'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: deviceUrlController,
+                decoration: InputDecoration(hintText: 'Device URL'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: deviceIDController,
+                decoration: InputDecoration(hintText: 'Device ID'),
               ),
             ],
           ),
@@ -156,23 +196,30 @@ class _DeviceListState extends State<DeviceList> {
               child: Text('Save'),
               onPressed: () async {
                 String newDeviceName = deviceNameController.text.trim();
-                Navigator.of(context).pop(); // Close the dialog first
+                String newDeviceUrl = deviceUrlController.text.trim();
+                String newDeviceID = deviceIDController.text.trim();
 
-                if (newDeviceName.isNotEmpty && newDeviceName != currentDeviceName) {
-                  try {
-                    // Update the device name and URL in the database
-                    await authService.updateDeviceName(currentDeviceName, newDeviceName);
-
-                    // Update the device list in the state
-                    setState(() {
-                      devices[index] = newDeviceName;
-                      _filterDevices(searchController.text); // Update filteredDevices based on the search query
-                    });
-
-                    _showSnackBar("Device name changed to \"$newDeviceName\"");
-                  } catch (e) {
-                    _showSnackBar("Failed to update device name");
+                if (newDeviceID != currentDevice['deviceID']) {
+                  var existingDevice = await authService.getDeviceByID(newDeviceID);
+                  if (existingDevice != null) {
+                    _showSnackBar("Device ID \"$newDeviceID\" already exists");
+                    return;
                   }
+                }
+
+                Navigator.of(context).pop();
+
+                try {
+                  await authService.updateDevice(currentDeviceName, newDeviceName, newDeviceUrl, newDeviceID);
+
+                  setState(() {
+                    devices[index] = newDeviceName;
+                    _filterDevices(searchController.text);
+                  });
+
+                  _showSnackBar("Device updated successfully");
+                } catch (e) {
+                  _showSnackBar("Failed to update device");
                 }
               },
             ),
@@ -183,88 +230,95 @@ class _DeviceListState extends State<DeviceList> {
   }
 
   void _showAddDeviceDialog() {
-  String newDeviceName = '';
-  String newDeviceUrl = '';
-  String? errorMessage; // To store error messages
+    String newDeviceName = '';
+    String newDeviceUrl = '';
+    String newDeviceID = '';
+    String? errorMessage;
 
-  showDialog(
-    context: context,
-    builder: (context) {
-      return StatefulBuilder( // Use StatefulBuilder to manage state within the dialog
-        builder: (context, setState) {
-          return AlertDialog(
-            title: Text('Add New Device'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  decoration: InputDecoration(hintText: 'Device Name'),
-                  onChanged: (value) {
-                    newDeviceName = value;
-                    setState(() {
-                      errorMessage = null; // Reset error message when the user starts typing
-                    });
-                  },
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  decoration: InputDecoration(hintText: 'Device URL'),
-                  onChanged: (value) {
-                    newDeviceUrl = value;
-                    setState(() {
-                      errorMessage = null; // Reset error message when the user starts typing
-                    });
-                  },
-                ),
-                if (errorMessage != null) // Display error message if there is one
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10.0),
-                    child: Text(
-                      errorMessage!,
-                      style: TextStyle(color: Colors.red),
-                    ),
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Add New Device'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    decoration: InputDecoration(hintText: 'Device Name'),
+                    onChanged: (value) {
+                      newDeviceName = value;
+                      setState(() {
+                        errorMessage = null;
+                      });
+                    },
                   ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    decoration: InputDecoration(hintText: 'Device URL'),
+                    onChanged: (value) {
+                      newDeviceUrl = value;
+                      setState(() {
+                        errorMessage = null;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    decoration: InputDecoration(hintText: 'Device ID'),
+                    onChanged: (value) {
+                      newDeviceID = value;
+                      setState(() {
+                        errorMessage = null;
+                      });
+                    },
+                  ),
+                  if (errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10.0),
+                      child: Text(
+                        errorMessage!,
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  child: Text('Cancel'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                TextButton(
+                  child: Text('Add'),
+                  onPressed: () async {
+                    if (newDeviceName.isEmpty || newDeviceUrl.isEmpty || newDeviceID.isEmpty) {
+                      setState(() {
+                        errorMessage = 'Please fill in all fields.';
+                      });
+                      return;
+                    }
+
+                    if (devices.contains(newDeviceName)) {
+                      setState(() {
+                        errorMessage = 'Device name already exists. Please choose a different name.';
+                      });
+                      return;
+                    }
+
+                    Navigator.of(context).pop();
+                    await _addDevice(newDeviceName, newDeviceUrl, newDeviceID);
+                  },
+                ),
               ],
-            ),
-            actions: [
-              TextButton(
-                child: Text('Cancel'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-              TextButton(
-                child: Text('Add'),
-                onPressed: () async {
-                  // Check if both fields are filled
-                  if (newDeviceName.isEmpty || newDeviceUrl.isEmpty) {
-                    setState(() {
-                      errorMessage = 'Please fill in all fields.';
-                    });
-                    return;
-                  }
-
-                  // Check if the device name already exists
-                  if (devices.contains(newDeviceName)) {
-                    setState(() {
-                      errorMessage = 'Device name already exists. Please choose a different name.';
-                    });
-                    return;
-                  }
-
-                  // Close the dialog and add the device
-                  Navigator.of(context).pop();
-                  await _addDevice(newDeviceName, newDeviceUrl);
-                },
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
-}
-
+            );
+          },
+        );
+      },
+    );
+  }
 
   void _showSnackBar(String message) {
     final scaffoldMessenger = ScaffoldMessenger.of(_scaffoldKey.currentContext!);
@@ -273,66 +327,188 @@ class _DeviceListState extends State<DeviceList> {
     );
   }
 
-  void _showEditSystemNameDialog() {
-    String newSystemName = widget.systemName;
+  Future<bool> _showEditSystemDialog(String currentSystemName, List<String> currentSelectedDevices) async {
+    String newSystemName = currentSystemName;
+    List<String> selectedDevices = List.from(currentSelectedDevices);
+    List<String> availableDevices = await authService.getAllDevices();
+    List<String> filteredDevices = List.from(availableDevices);
+    TextEditingController searchController = TextEditingController();
+    String? errorMessage;
 
-    showDialog(
+    return await showDialog<bool>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text('Edit System Name'),
-          content: TextField(
-            decoration: InputDecoration(hintText: 'System Name'),
-            onChanged: (value) {
-              newSystemName = value;
-            },
-            controller: TextEditingController(text: widget.systemName), // Pre-fill with the current name
-          ),
-          actions: [
-            TextButton(
-              child: Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('Save'),
-              onPressed: () async {
-                Navigator.of(context).pop(); // Close the dialog first
-                if (newSystemName.isNotEmpty && newSystemName != widget.systemName) {
-                  try {
-                    // Update the system name in the database
-                    await authService.updateSystemName(widget.systemName, newSystemName);
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Edit System'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    decoration: InputDecoration(hintText: 'System Name'),
+                    onChanged: (value) {
+                      newSystemName = value;
+                      setState(() {
+                        errorMessage = null;
+                      });
+                    },
+                    controller: TextEditingController(text: newSystemName),
+                  ),
+                  SizedBox(height: 20),
+                  TextField(
+                    controller: searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search Devices...',
+                      prefixIcon: Icon(Icons.search),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        filteredDevices = availableDevices
+                            .where((device) => device.toLowerCase().contains(value.toLowerCase()))
+                            .toList();
+                      });
+                    },
+                  ),
+                  SizedBox(height: 20),
+                  Text('Select Devices:'),
+                  Container(
+                    width: double.maxFinite,
+                    height: 200,
+                    child: ListView(
+                      children: filteredDevices.map((device) {
+                        return CheckboxListTile(
+                          title: Text(device),
+                          value: selectedDevices.contains(device),
+                          onChanged: (bool? value) async {
+                            if (value == true) {
+                              // Allow selecting a device if it is already associated with the current system
+                              if (currentSelectedDevices.contains(device)) {
+                                setState(() {
+                                  selectedDevices.add(device);
+                                  errorMessage = null;
+                                });
+                              } else {
+                                bool isAvailable = await authService.isDeviceAvailable(device);
+                                if (!isAvailable) {
+                                  setState(() {
+                                    errorMessage = 'Device "$device" is already assigned to another system.';
+                                  });
+                                } else {
+                                  setState(() {
+                                    selectedDevices.add(device);
+                                    errorMessage = null;
+                                  });
+                                }
+                              }
+                            } else {
+                              setState(() {
+                                selectedDevices.remove(device);
+                              });
+                            }
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  if (errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10.0),
+                      child: Text(
+                        errorMessage!,
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  child: Text('Cancel'),
+                  onPressed: () {
+                    Navigator.of(context).pop(false);
+                  },
+                ),
+                TextButton(
+                  child: Text('Save'),
+                  onPressed: () async {
+                    if (newSystemName.isEmpty) {
+                      setState(() {
+                        errorMessage = 'System name cannot be empty.';
+                      });
+                      return;
+                    }
 
-                    // Update the system name in the state
-                    setState(() {
-                      widget.systemName = newSystemName; // Update systemName within setState
-                    });
+                    if (selectedDevices.isEmpty) {
+                      setState(() {
+                        errorMessage = 'You must select at least one device.';
+                      });
+                      return;
+                    }
 
-                    _showSnackBar("System name changed to \"$newSystemName\"");
-                  } catch (e) {
-                    _showSnackBar("Failed to update system name");
-                  }
-                }
-              },
-            ),
-          ],
+                    // Ensure all selected devices (excluding those already in the system) are available
+                    for (var device in selectedDevices) {
+                      if (!currentSelectedDevices.contains(device)) {
+                        bool isAvailable = await authService.isDeviceAvailable(device);
+                        if (!isAvailable) {
+                          setState(() {
+                            errorMessage = 'Device "$device" is already assigned to another system.';
+                          });
+                          return;
+                        }
+                      }
+                    }
+
+                    try {
+                      bool success = await authService.updateSystem(
+                        currentSystemName,
+                        newSystemName,
+                        selectedDevices,
+                      );
+
+                      if (success) {
+                        List<String> updatedDevices = await authService.getSystemDevices(newSystemName);
+
+                        setState(() {
+                          widget.systemName = newSystemName;
+                          devices = updatedDevices;
+                          filteredDevices = devices;
+                        });
+
+                        // Safely close the dialog
+                        if (mounted) {
+                          Navigator.of(context).pop(true);
+                        }
+                      } else {
+                        setState(() {
+                          errorMessage = 'Failed to update the system. Please try again.';
+                        });
+                      }
+                    } catch (e) {
+                      setState(() {
+                        errorMessage = 'An error occurred while updating the system.';
+                      });
+                      print('Error: $e');
+                    }
+                  },
+                ),
+              ],
+            );
+          },
         );
       },
-    );
+    ) ?? false;
   }
-
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Scaffold(
-      key: _scaffoldKey, // Assign the Scaffold key
-      backgroundColor: themeProvider.isDarkMode ? Colors.black : Colors.white, // Background color changes with theme
+      key: _scaffoldKey,
+      backgroundColor: themeProvider.isDarkMode ? Colors.black : Colors.white,
       appBar: AppBar(
         title: Row(
-          mainAxisAlignment: MainAxisAlignment.center, // Center the content
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Flexible(
               child: Text(
@@ -342,18 +518,22 @@ class _DeviceListState extends State<DeviceList> {
                   fontSize: 24.0,
                   fontWeight: FontWeight.bold,
                 ),
-                overflow: TextOverflow.ellipsis, // Handle overflow if the name is too long
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            if (widget.systemName != "All Devices") // Conditionally show the edit button
-              IconButton(
-                icon: Icon(Icons.edit, color: Colors.white),
-                onPressed: () {
-                  _showEditSystemNameDialog();
-                },
-                padding: EdgeInsets.zero, // Remove padding around the icon
-                constraints: BoxConstraints(), // Remove constraints to make the icon tightly wrap its content
-              ),
+            if (widget.userData['systemRole']?.toLowerCase() == 'admin')
+              if (widget.systemName != "All Devices")
+                IconButton(
+                  icon: Icon(Icons.edit, color: Colors.white),
+                  onPressed: () async {
+                    bool updated = await _showEditSystemDialog(widget.systemName, devices);
+                    if (updated) {
+                      setState(() {});
+                    }
+                  },
+                  padding: EdgeInsets.zero,
+                  constraints: BoxConstraints(),
+                ),
           ],
         ),
         centerTitle: true,
@@ -365,8 +545,8 @@ class _DeviceListState extends State<DeviceList> {
           },
         ),
         actions: [
-          Visibility(child:
-            IconButton(
+          Visibility(
+            child: IconButton(
               icon: Icon(Icons.settings),
               color: themeProvider.isDarkMode ? Colors.grey[900]! : Color.fromRGBO(75, 117, 198, 1),
               onPressed: () {
@@ -377,83 +557,88 @@ class _DeviceListState extends State<DeviceList> {
         ],
         backgroundColor: themeProvider.isDarkMode ? Colors.grey[900]! : Color.fromRGBO(75, 117, 198, 1),
       ),
-
-
-      body: Column(
-        children: [
-          const SizedBox(height: 15),
-          MySearchBar(
-            controller: searchController,
-            hintText: 'Search devices...',
-            onChanged: _filterDevices,
-            backgroundColor: themeProvider.isDarkMode ? Colors.grey[800]! : Colors.white,
-            textColor: themeProvider.isDarkMode ? Colors.white : Colors.black,
-            hintColor: themeProvider.isDarkMode ? Colors.white54 : Colors.black54,
-          ),
-          const SizedBox(height: 15),
-          Expanded(
-            child: ListView.builder(
-              itemCount: filteredDevices.length,
-              itemBuilder: (context, index) {
-                return Dismissible(
-                  key: Key(filteredDevices[index]),
-                  background: Container(color: Colors.green),
-                  secondaryBackground: Container(
-                    color: Colors.red,
-                    alignment: Alignment.centerRight,
-                    padding: EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Icon(
-                      Icons.delete,
-                      color: Colors.white,
-                    ),
-                  ),
-                  confirmDismiss: (direction) async {
-                    if (direction == DismissDirection.endToStart) {
-                      await authService.deleteDevice(filteredDevices[index]);
-                      setState(() {
-                        devices.removeAt(index);
-                        filteredDevices.removeAt(index);
-                      });
-                      _showSnackBar("Device ${filteredDevices[index]} deleted");
-                      return true;
-                    }
-                    return false;
-                  },
-                  onDismissed: (direction) {},
-                  child: myRow(
-                    icon: Icons.device_hub,
-                    text: filteredDevices[index],
-                    onTap: () {},
-                    onDismissed: () => _removeDevice(index),
-                    actions: [
-                      IconButton(
-                        icon: Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () {
-                          _editDevice(index);
+      body: isLoading // Display loading spinner while data is being fetched
+          ? Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                const SizedBox(height: 15),
+                MySearchBar(
+                  controller: searchController,
+                  hintText: 'Search devices...',
+                  onChanged: _filterDevices,
+                  backgroundColor: themeProvider.isDarkMode ? Colors.grey[800]! : Colors.white,
+                  textColor: themeProvider.isDarkMode ? Colors.white : Colors.black,
+                  hintColor: themeProvider.isDarkMode ? Colors.white54 : Colors.black54,
+                ),
+                const SizedBox(height: 15),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: filteredDevices.length,
+                    itemBuilder: (context, index) {
+                      return Dismissible(
+                        key: Key(filteredDevices[index]),
+                        background: widget.userData['systemRole']?.toLowerCase() == 'admin'
+                            ? Container(color: Colors.green)
+                            : null,
+                        secondaryBackground: widget.userData['systemRole']?.toLowerCase() == 'admin'
+                            ? Container(
+                                color: Colors.red,
+                                alignment: Alignment.centerRight,
+                                padding: EdgeInsets.symmetric(horizontal: 20.0),
+                                child: Icon(
+                                  Icons.delete,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : null,
+                        confirmDismiss: (direction) async {
+                          if (widget.userData['systemRole']?.toLowerCase() == 'admin') {
+                            if (direction == DismissDirection.endToStart) {
+                              await _removeDevice(index);
+                              return true;
+                            }
+                            return false;
+                          } else {
+                            _showSnackBar("Only admins can delete devices.");
+                            return false;
+                          }
                         },
-                      ),
-                    ],
+                        child: myRow(
+                          icon: Icons.device_hub,
+                          text: filteredDevices[index],
+                          userRole: widget.userData['systemRole'],
+                          onTap: () {},
+                          onDismissed: () => _removeDevice(index),
+                          actions: [
+                            if (widget.userData['systemRole']?.toLowerCase() == 'admin')
+                              IconButton(
+                                icon: Icon(Icons.edit, color: Colors.blue),
+                                onPressed: () {
+                                  _editDevice(index);
+                                },
+                              ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
-                );
+                ),
+              ],
+            ),
+      floatingActionButton: (widget.userData['systemRole']?.toLowerCase() == 'admin' && widget.systemName == "All Devices")
+          ? FloatingActionButton(
+              foregroundColor: Color.fromRGBO(75, 117, 198, 1),
+              backgroundColor: themeProvider.isDarkMode ? Colors.grey[700]! : Colors.white,
+              shape: CircleBorder(
+                eccentricity: 0,
+                side: BorderSide(color: Color.fromRGBO(75, 117, 198, 1), width: 2.0),
+              ),
+              onPressed: () {
+                _showAddDeviceDialog();
               },
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: widget.userData['systemRole'].toLowerCase() == 'admin'
-        ? FloatingActionButton(
-            foregroundColor: Color.fromRGBO(75, 117, 198, 1),
-            backgroundColor: themeProvider.isDarkMode ? Colors.grey[700]! : Colors.white,
-            shape: CircleBorder(
-              eccentricity: 0,
-              side: BorderSide(color: Color.fromRGBO(75, 117, 198, 1), width: 2.0),
-            ),
-            onPressed: () {
-              _showAddDeviceDialog();
-            },
-            child: Icon(Icons.add, color: themeProvider.isDarkMode ? Colors.white : Colors.black),
-          )
-        : null,
+              child: Icon(Icons.add, color: themeProvider.isDarkMode ? Colors.white : Colors.black),
+            )
+          : null,
     );
   }
 }

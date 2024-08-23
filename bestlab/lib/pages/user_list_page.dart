@@ -4,7 +4,7 @@ import 'package:bestlab/components/my_search_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:bestlab/components/themeProvider.dart';
 import 'login_page.dart'; // Ensure this imports the AuthService
-import 'user_create_page.dart'; // Import the UserSetting page
+import 'user_create_page.dart'; // Import the UserCreate page
 import 'user_setting.dart';
 
 class UserList extends StatefulWidget {
@@ -19,17 +19,41 @@ class _UserListState extends State<UserList> {
   final AuthService authService = AuthService();
   bool isLoading = true;
   String? errorMessage;
+  Map<String, dynamic>? currentUser;
 
   @override
   void initState() {
     super.initState();
     searchController = TextEditingController();
+    fetchCurrentUser();
     fetchUsers();
 
     // Listen to changes in the search query
     searchController.addListener(() {
       _filterUsers(searchController.text);
     });
+  }
+
+  Future<void> fetchCurrentUser() async {
+    try {
+      final user = await authService.fetchCurrentLoggedInUser(context);
+      if (user != null) {
+        setState(() {
+          currentUser = user;
+        });
+        fetchUsers(); // Fetch users after setting the currentUser
+      } else {
+        setState(() {
+          errorMessage = 'Failed to load current user';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Failed to load current user';
+        isLoading = false;
+      });
+    }
   }
 
   Future<void> fetchUsers() async {
@@ -177,15 +201,16 @@ class _UserListState extends State<UserList> {
       ),
     );
 
-    // Check if the updated user data is returned
     if (updatedUser != null) {
-      int index = users.indexWhere((user) => user['userID'] == updatedUser['userID']);
-      if (index != -1) {
-        setState(() {
+      setState(() {
+        int index = users.indexWhere((user) => user['userID'] == updatedUser['userID']);
+        if (index != -1) {
           users[index] = updatedUser;
-          _filterUsers(searchController.text); // Re-filter the list with the updated data
-        });
-      }
+        } else {
+          users.add(updatedUser);
+        }
+        _filterUsers(searchController.text);
+      });
     }
   }
 
@@ -239,6 +264,7 @@ class _UserListState extends State<UserList> {
                                 return myRow(
                                   icon: Icons.person,
                                   text: filteredUsers[index]['username'],
+                                  userRole: currentUser!['systemRole'],
                                   subText: 'User ID: ${filteredUsers[index]['userID']}',
                                   onTap: () => _navigateToUserSetting(filteredUsers[index]),
                                   onDismissed: () => _removeItem(index),
@@ -270,13 +296,23 @@ class _UserListState extends State<UserList> {
           eccentricity: 0,
           side: BorderSide(color: Color.fromRGBO(75, 117, 198, 1), width: 2.0),
         ),
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          // Navigate to the UserCreate page and await the result
+          final newUser = await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => UserCreate(),
             ),
           );
+
+          if (newUser != null) {
+            setState(() {
+              // Add the newly created user to the users list
+              users.add(newUser);
+              // Re-apply the search filter to include the new user
+              _filterUsers(searchController.text);
+            });
+          }
         },
         child: Icon(Icons.add, color: themeProvider.isDarkMode ? Colors.white : Colors.black),
       ),

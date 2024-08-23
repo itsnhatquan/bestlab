@@ -31,7 +31,7 @@ class _UserSettingState extends State<UserSetting> {
   late TextEditingController confirmPasswordController;
   late String? selectedRole;
   late List<String> selectedSystems;
-  List<String> systems = [];
+  List<Map<String, dynamic>> systems = [];
   final AuthService authService = AuthService();
   String? loggedInUserRole;
 
@@ -214,7 +214,7 @@ class _UserSettingState extends State<UserSetting> {
                       hintText: 'Select systems...',
                       labelText: 'Systems',
                       selectedItems: selectedSystems,
-                      items: systems,
+                      items: systems.map((system) => system['name'].toString()).toList(), // Convert List<Map<String, dynamic>> to List<String>,
                       isSingleSelection: false, // Allow multiple selections for systems
                       onChanged: (List<String> newValue) {
                         setState(() {
