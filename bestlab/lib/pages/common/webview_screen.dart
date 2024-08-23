@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-class WebViewScreen extends StatelessWidget { 
+class WebViewScreen extends StatelessWidget {
   final String url;
 
   WebViewScreen({required this.url});
@@ -10,7 +10,7 @@ class WebViewScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Device Web View'),
+        title: Text('Device Statistics'),
       ),
       body: WebView(
         initialUrl: url,

@@ -70,3 +70,39 @@ class _DeviceListScreenState extends State<DeviceListScreen> {
     );
   }
 }
+
+// import 'package:flutter/material.dart';
+// import 'models/system.dart';
+// import 'webview_screen.dart';
+
+// class DeviceListScreen extends StatelessWidget {
+//   final System system;
+
+//   DeviceListScreen({required this.system});
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text(system.name),
+//       ),
+//       body: ListView.builder(
+//         itemCount: system.devices.length,
+//         itemBuilder: (context, index) {
+//           final device = system.devices[index];
+//           return ListTile(
+//             title: Text(device.name),
+//             onTap: () {
+//               Navigator.push(
+//                 context,
+//                 MaterialPageRoute(
+//                   builder: (context) => WebViewScreen(url: device.url),
+//                 ),
+//               );
+//             },
+//           );
+//         },
+//       ),
+//     );
+//   }
+// }
