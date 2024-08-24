@@ -63,7 +63,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
   void _loadUrlWithHeaders(String url) async {
     final headers = {
-      'Authorization': 'Bearer glsa_67W6Qe8jsbDslDZNdjxwbSpPt5wfVUFb_0d72e163',
+      'Authorization': 'GRAFANA_TOKEN',
     };
     await _controller.loadUrl(url, headers: headers);
   }
