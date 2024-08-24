@@ -46,7 +46,6 @@ class _WebViewScreenState extends State<WebViewScreen> {
         javascriptMode: JavascriptMode.unrestricted,
         onWebViewCreated: (WebViewController webViewController) {
           _controller = webViewController;
-          _loadUrlWithHeaders(widget.url);
         },
         onPageStarted: (String url) {
           print('Page started loading: $url');
@@ -61,10 +60,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
     );
   }
 
-  void _loadUrlWithHeaders(String url) async {
-    final headers = {
-      'Authorization': 'GRAFANA_TOKEN',
-    };
-    await _controller.loadUrl(url, headers: headers);
-  }
+//   void _loadUrlWithHeaders(String url) async {
+//     final headers = {
+//       'Authorization': 'GRAFANA_TOKEN',
+//     };
+//     await _controller.loadUrl(url, headers: headers);
+//   }
 }

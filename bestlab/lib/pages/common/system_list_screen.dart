@@ -117,3 +117,125 @@
 //     );
 //   }
 // }
+
+// import 'package:bestlab/pages/api/mongo_db_service.dart';
+// import 'package:flutter/material.dart';
+// import 'device_list_screenn.dart';
+
+// class SystemListScreen extends StatefulWidget {
+//   @override
+//   _SystemListScreenState createState() => _SystemListScreenState();
+// }
+
+// class _SystemListScreenState extends State<SystemListScreen> {
+//   final MongoDBService _mongoDBService = MongoDBService();
+//   List<Map<String, dynamic>> _systems = [];
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _fetchSystems();
+//   }
+
+//   Future<void> _fetchSystems() async {
+//     await _mongoDBService.connect();
+//     final systems = await _mongoDBService.getSystems();
+//     setState(() {
+//       _systems = systems;
+//     });
+//     await _mongoDBService.close();
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text('Systems'),
+//       ),
+//       body: ListView.builder(
+//         itemCount: _systems.length,
+//         itemBuilder: (context, index) {
+//           return ListTile(
+//             title: Text(_systems[index]['name']),
+//             onTap: () {
+//               Navigator.push(
+//                 context,
+//                 MaterialPageRoute(
+//                   builder: (context) => DeviceListScreen(systemId: _systems[index]['_id'].toString()),
+//                 ),
+//               );
+//             },
+//           );
+//         },
+//       ),
+//     );
+//   }
+// }
+
+// import 'package:bestlab/pages/api/mongo_db_service.dart';
+// import 'package:flutter/material.dart';
+// import 'device_list_screenn.dart';  // Fixed the import path
+
+// class SystemListScreen extends StatefulWidget {
+//   @override
+//   _SystemListScreenState createState() => _SystemListScreenState();
+// }
+
+// class _SystemListScreenState extends State<SystemListScreen> {
+//   final MongoDBService _mongoDBService = MongoDBService();
+//   List<Map<String, dynamic>> _systems = [];
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _fetchSystems();
+//   }
+
+//   Future<void> _fetchSystems() async {
+//     try {
+//       await _mongoDBService.connect();
+//       final systems = await _mongoDBService.getSystems();
+      
+//       if (mounted) {
+//         setState(() {
+//           _systems = systems;
+//         });
+//       }
+//     } catch (e) {
+//       print('Failed to fetch systems: $e');
+//     } finally {
+//       await _mongoDBService.close();
+//     }
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text('Systems'),
+//       ),
+//       body: ListView.builder(
+//         itemCount: _systems.length,
+//         itemBuilder: (context, index) {
+//           return ListTile(
+//             title: Text(_systems[index]['name']),
+//             onTap: () {
+//               Navigator.push(
+//                 context,
+//                 MaterialPageRoute(
+//                   builder: (context) => DeviceListScreen(systemId: _systems[index]['_id'].toString()),
+//                 ),
+//               );
+//             },
+//           );
+//         },
+//       ),
+//     );
+//   }
+
+//   @override
+//   void dispose() {
+//     // Clean up resources if needed
+//     super.dispose();
+//   }
+// }
