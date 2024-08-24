@@ -1,4 +1,4 @@
-import 'package:bestlab/pages/device_list_page.dart';
+import 'package:bestlab/pages/common/device_list_page.dart';
 import 'package:flutter/material.dart';
 import 'package:bestlab/components/row.dart';
 import 'package:bestlab/components/my_search_bar.dart'; // Import the search bar component

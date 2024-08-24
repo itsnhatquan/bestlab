@@ -1,6 +1,7 @@
 // lib/device_list_screen.dart
+import 'package:bestlab/pages/api/database_service.dart';
 import 'package:flutter/material.dart';
-import 'database_service.dart';
+
 import 'webview_screen.dart';
 
 class DeviceListScreen extends StatefulWidget {
@@ -52,7 +53,6 @@ class _DeviceListScreenState extends State<DeviceListScreen> {
                 final device = snapshot.data![index];
                 return ListTile(
                   title: Text(device['name']),
-                  subtitle: Text(device['url']),
                   onTap: () {
                     Navigator.push(
                       context,
