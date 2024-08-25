@@ -1,3 +1,4 @@
+import 'package:bestlab/Quan/webview_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:bestlab/components/row.dart'; // Updated import for myRow
 import 'package:bestlab/components/my_search_bar.dart';
@@ -607,7 +608,20 @@ class _DeviceListState extends State<DeviceList> {
                           icon: Icons.device_hub,
                           text: filteredDevices[index],
                           userRole: widget.userData['systemRole'],
-                          onTap: () {},
+                         onTap: () async {
+  var deviceName = filteredDevices[index];
+  var device = await authService.getDeviceByName(deviceName);
+  if (device != null) {
+   Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => WebViewScreen(url: device['url']),
+                      ),
+                    );
+  } else {
+    print('Device not found');
+  }
+},
                           onDismissed: () => _removeDevice(index),
                           actions: [
                             if (widget.userData['systemRole']?.toLowerCase() == 'admin')

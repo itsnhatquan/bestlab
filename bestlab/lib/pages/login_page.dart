@@ -112,6 +112,7 @@ class AuthService {
     return system == null;
   }
 
+
   Future<bool> updateDevice(String oldName, String newName, String newUrl, String newDeviceID) async {
     try {
       final db = await _getDbConnection();
@@ -159,6 +160,27 @@ class AuthService {
     }
   }
 
+  Future<Map<String, dynamic>?> getDeviceByURL(String deviceUrl) async {
+    try {
+      await db.open();
+      var collection = db.collection('devices');
+      var device = await collection.findOne({'url': deviceUrl});
+      await db.close();
+
+      if (device != null) {
+        return device;
+      } else {
+        print('Device with URL $deviceUrl not found.');
+        return null; // Return null if the device is not found
+      }
+    } catch (e) {
+      print('Error fetching device by URL: $e');
+      return null; // Return null if there was an error
+    } finally {
+      await db.close(); // Ensure the database connection is closed
+    }
+  }
+
   Future<Map<String, dynamic>?> getDeviceByName(String deviceName) async {
     try {
       await db.open();
@@ -179,6 +201,7 @@ class AuthService {
       await db.close();
     }
   }
+
 
 
   Future<void> addDevice(String deviceName, String deviceUrl, String deviceID) async {
