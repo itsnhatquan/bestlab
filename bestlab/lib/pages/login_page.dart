@@ -646,16 +646,6 @@ class _LoginPageState extends State<LoginPage> {
                     onTap: () => signUserIn(context),
                   ),
                 ),
-                const SizedBox(height: 50),
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => SignUpPage()),
-                    );
-                  },
-                  child: Text('Not a member? Register now'),
-                ),
                 const SizedBox(height: 10),
               ],
             ),

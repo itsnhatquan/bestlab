@@ -269,18 +269,6 @@ class _UserListState extends State<UserList> {
                                   onTap: () => _navigateToUserSetting(filteredUsers[index]),
                                   onDismissed: () => _removeItem(index),
                                   actions: [
-                                    IconButton(
-                                      icon: Icon(Icons.upgrade, color: Colors.blue),
-                                      onPressed: () {
-                                        _upgradeRole(index);
-                                      },
-                                    ),
-                                    IconButton(
-                                      icon: Icon(Icons.delete, color: Colors.red),
-                                      onPressed: () {
-                                        _removeItem(index);
-                                      },
-                                    ),
                                   ],
                                 );
                               },
