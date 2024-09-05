@@ -592,6 +592,13 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+   void autofillCredentials(String username, String password) {
+    setState(() {
+      usernameController.text = username;
+      passwordController.text = password;
+    });
+  }
+
 
 
   @override
@@ -647,6 +654,29 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () => autofillCredentials('Quan', 'test1234'),
+                      child: Text('Autofill User'),
+                      style: ElevatedButton.styleFrom(
+                        
+                        backgroundColor: Color.fromARGB(255, 68, 107, 186),
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                    SizedBox(width: 55),
+                    ElevatedButton(
+                      onPressed: () => autofillCredentials('tom', 'tom'),
+                      child: Text('Autofill Admin'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color.fromARGB(255, 68, 107, 186),
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
