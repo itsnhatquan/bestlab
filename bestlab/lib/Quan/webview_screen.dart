@@ -107,34 +107,36 @@ class _WebViewScreenState extends State<WebViewScreen> {
           builder: (context, setState) {
             return AlertDialog(
               title: Text('Edit Time Settings'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      ChoiceChip(
-                        label: Text('Time Range'),
-                        selected: selectedTab == 'Time Range',
-                        onSelected: (selected) {
-                          setState(() {
-                            selectedTab = 'Time Range';
-                          });
-                        },
-                      ),
-                      ChoiceChip(
-                        label: Text('Live Data'),
-                        selected: selectedTab == 'Live Data',
-                        onSelected: (selected) {
-                          setState(() {
-                            selectedTab = 'Live Data';
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 16),
-                  if (selectedTab == 'Time Range')
+              content: SizedBox(
+                width: MediaQuery.of(context).size.width * 0.8, // Adjust width
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Wrap(
+                      spacing: 8.0, // Add spacing between the chips
+                      children: [
+                        ChoiceChip(
+                          label: Text('Time Range'),
+                          selected: selectedTab == 'Time Range',
+                          onSelected: (selected) {
+                            setState(() {
+                              selectedTab = 'Time Range';
+                            });
+                          },
+                        ),
+                        ChoiceChip(
+                          label: Text('Live Data'),
+                          selected: selectedTab == 'Live Data',
+                          onSelected: (selected) {
+                            setState(() {
+                              selectedTab = 'Live Data';
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 16),
+                    if (selectedTab == 'Time Range')
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -168,7 +170,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
                         ),
                       ],
                     ),
-                ],
+                  ],
+                ),
               ),
               actions: [
                 TextButton(

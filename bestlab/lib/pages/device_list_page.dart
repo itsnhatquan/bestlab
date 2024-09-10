@@ -13,7 +13,6 @@ class DeviceList extends StatefulWidget {
   final Map<String, dynamic> userData;
 
   DeviceList({
-    super.key,
     required this.systemName,
     required this.devices,
     required this.userData,
@@ -24,7 +23,7 @@ class DeviceList extends StatefulWidget {
 }
 
 class _DeviceListState extends State<DeviceList> {
-  late List<String> devices;
+  late List<String> devices = [];
   late List<String> filteredDevices = [];
   late TextEditingController searchController;
   late AuthService authService;
@@ -42,34 +41,11 @@ class _DeviceListState extends State<DeviceList> {
   }
 
   Future<void> _initializeDeviceList() async {
-    if (widget.userData['systemRole']?.toLowerCase() == 'admin') {
-      setState(() {
+    setState(() {
         devices = widget.devices;
         filteredDevices = devices;
         isLoading = false; // Set isLoading to false once data is fetched
       });
-    } else if (widget.userData['systemRole']?.toLowerCase() == 'user') {
-      List<String> userDevices = [];
-
-      for (var systemName in widget.userData['systemAccess']) {
-        List<String> systemDevices = await authService.getSystemDevices(systemName);
-        userDevices.addAll(systemDevices);
-      }
-
-      userDevices = userDevices.toSet().toList();
-
-      setState(() {
-        devices = userDevices;
-        filteredDevices = devices;
-        isLoading = false; // Set isLoading to false once data is fetched
-      });
-    } else {
-      setState(() {
-        devices = [];
-        filteredDevices = devices;
-        isLoading = false; // Set isLoading to false once data is fetched
-      });
-    }
   }
 
   @override
@@ -609,19 +585,19 @@ class _DeviceListState extends State<DeviceList> {
                           text: filteredDevices[index],
                           userRole: widget.userData['systemRole'],
                          onTap: () async {
-  var deviceName = filteredDevices[index];
-  var device = await authService.getDeviceByName(deviceName);
-  if (device != null) {
-   Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => WebViewScreen(url: device['url']),
-                      ),
-                    );
-  } else {
-    print('Device not found');
-  }
-},
+                            var deviceName = filteredDevices[index];
+                            var device = await authService.getDeviceByName(deviceName);
+                            if (device != null) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => WebViewScreen(url: device['url']),
+                                ),
+                              );
+                            } else {
+                              print('Device not found');
+                            }
+                          },
                           onDismissed: () => _removeDevice(index),
                           actions: [
                             if (widget.userData['systemRole']?.toLowerCase() == 'admin')

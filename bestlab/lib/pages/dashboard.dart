@@ -247,14 +247,25 @@ class _DashboardState extends State<Dashboard> {
                       } else if (index == 2) {
                         return InkWell(
                           onTap: () async {
+                            var devices;
+                            var userDevices = <String>[];
                             var allDevices = await authService.getAllDevices(); // Fetch all devices
+                            for(var systemName in currentUser!['systemAccess']){
+                              List<String> systemDevices = await authService.getSystemDevices(systemName);
+                              userDevices.addAll(systemDevices);
+                            }
+                            if(currentUser!['systemRole'].toLowerCase() == 'admin'){
+                              devices = allDevices;
+                            }else{
+                              devices = userDevices;
+                            }
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => DeviceList(
                                   systemName: "All Devices",
-                                  devices: allDevices,
                                   userData: currentUser!,
+                                  devices: devices,
                                 ),
                               ),
                             );
