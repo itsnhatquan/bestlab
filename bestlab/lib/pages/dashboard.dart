@@ -247,16 +247,15 @@ class _DashboardState extends State<Dashboard> {
                       } else if (index == 2) {
                         return InkWell(
                           onTap: () async {
-                            var devices;
+                            var devices = <String>[];
                             var userDevices = <String>[];
-                            var allDevices = await authService.getAllDevices(); // Fetch all devices
-                            for(var systemName in currentUser!['systemAccess']){
-                              List<String> systemDevices = await authService.getSystemDevices(systemName);
-                              userDevices.addAll(systemDevices);
-                            }
                             if(currentUser!['systemRole'].toLowerCase() == 'admin'){
-                              devices = allDevices;
+                              devices = await authService.getAllDevices();
                             }else{
+                              for(var systemName in currentUser!['systemAccess']){
+                                List<String> systemDevices = await authService.getSystemDevices(systemName);
+                                userDevices.addAll(systemDevices);
+                              }
                               devices = userDevices;
                             }
                             Navigator.push(
@@ -306,7 +305,14 @@ class _DashboardState extends State<Dashboard> {
                         );
                       } else {
                         return InkWell(
-                          onTap: () {},
+                          onTap: () {
+                            // Navigator.push(
+                            //   context, 
+                            //   MaterialPageRoute(
+                            //     builder: (context) => 
+                            //   ),
+                            // )
+                          },
                           child: Container(
                             margin: EdgeInsets.symmetric(
                                 vertical: 8, horizontal: 20),
