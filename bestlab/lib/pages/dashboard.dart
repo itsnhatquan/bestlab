@@ -1,4 +1,5 @@
 import 'package:bestlab/pages/login_page.dart';
+import 'package:bestlab/pages/notification_page.dart';
 import 'package:bestlab/pages/system_list_page.dart';
 import 'package:bestlab/pages/user_list_page.dart';
 import 'package:bestlab/pages/device_list_page.dart'; // Import your DeviceList page
@@ -306,12 +307,12 @@ class _DashboardState extends State<Dashboard> {
                       } else {
                         return InkWell(
                           onTap: () {
-                            // Navigator.push(
-                            //   context, 
-                            //   MaterialPageRoute(
-                            //     builder: (context) => 
-                            //   ),
-                            // )
+                             Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => NotificationPage(), // Navigate to the NotificationPage
+                              ),
+                            );
                           },
                           child: Container(
                             margin: EdgeInsets.symmetric(
@@ -332,9 +333,9 @@ class _DashboardState extends State<Dashboard> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
-                                Icon(Icons.hourglass_bottom, size: 50,),
+                                Icon(Icons.notifications, size: 50,),
                                 Text(
-                                  "Title",
+                                  "Notification",
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
